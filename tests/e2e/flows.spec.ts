@@ -102,3 +102,53 @@ test('list mode: grouped by hour, tap flies to pin and opens detail', async ({ p
   await page.getByRole('button', { name: /Venues list/ }).click();
   await expect(page.locator('.venues li').first()).toBeVisible();
 });
+
+test('lasso around Rembrandtplein lists only those venues', async ({ page }) => {
+  const REMBRANDTPLEIN: [number, number] = [4.8966, 52.3662];
+  await page.goto('./#d=23');
+  await ready(page);
+  await jumpTo(page, REMBRANDTPLEIN, 16);
+  const c = await pinPoint(page, REMBRANDTPLEIN);
+
+  await page.getByRole('button', { name: 'Select area' }).click();
+  await expect(page.getByText('Draw around the area you want')).toBeVisible();
+  const r = 80; // px, ≈ 90 m at zoom 16
+  await page.mouse.move(c.x + r, c.y);
+  await page.mouse.down();
+  for (let a = 0; a <= 2 * Math.PI + 0.01; a += Math.PI / 16) {
+    await page.mouse.move(c.x + r * Math.cos(a), c.y + r * Math.sin(a), { steps: 2 });
+  }
+  await page.mouse.up();
+
+  const head = page.locator('.sheet-head h2');
+  await expect(head).toContainText('in this area');
+  const venues = await page.locator('.card .venue').allTextContents();
+  expect(venues.length).toBeGreaterThan(0);
+
+  // Every listed venue lies inside the drawn circle.
+  const inside = await page.evaluate(
+    ([cx, cy, rad, names]) => {
+      const m = (window as unknown as { __adeMap: import('maplibre-gl').Map }).__adeMap;
+      const src = m.getSource('venues') as unknown as { _data: { geojson?: GeoJSON.FeatureCollection } };
+      const fc = (src._data.geojson ?? src._data) as GeoJSON.FeatureCollection;
+      return (names as string[]).every((n) => {
+        const f = fc.features.find((g) => g.properties!.name === n);
+        if (!f) return false;
+        const p = m.project((f.geometry as GeoJSON.Point).coordinates as [number, number]);
+        return Math.hypot(p.x - (cx as number), p.y - (cy as number)) <= (rad as number) + 2;
+      });
+    },
+    [c.x, c.y, r, [...new Set(venues)]] as const,
+  );
+  expect(inside).toBe(true);
+
+  // Changing the day re-evaluates the same area.
+  const friText = await head.textContent();
+  await page.getByRole('button', { name: 'Sat 24' }).click();
+  await expect(head).toContainText('in this area');
+  await expect(head).toContainText('Sat 24');
+  expect(await head.textContent()).not.toBe(friText);
+
+  await page.getByRole('button', { name: 'Clear area' }).first().click();
+  await expect(head).toHaveText(/Sat 24 · 316 parties/);
+});

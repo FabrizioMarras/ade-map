@@ -9,6 +9,8 @@
   import type { AdeEvent } from './lib/types';
   import EventDetail from './ui/EventDetail.svelte';
   import FilterSheet from './ui/FilterSheet.svelte';
+  import MapControls from './ui/MapControls.svelte';
+  import Toast from './ui/Toast.svelte';
   import PartyList from './ui/PartyList.svelte';
   import VenueList from './ui/VenueList.svelte';
   import TopBar from './ui/TopBar.svelte';
@@ -21,8 +23,11 @@
   let sheet: Sheet | undefined = $state();
   let sheetVisible = $state(0);
   let filtersOpen = $state(false);
+  let toast = $state<{ text: string; action?: { label: string; run: () => void } } | null>(null);
 
-  const narrowed = $derived(!!app.query.trim() || app.nowMode || activeFilterCount(app.filters) > 0);
+  const narrowed = $derived(
+    !!app.query.trim() || app.nowMode || activeFilterCount(app.filters) > 0 || !!app.area,
+  );
   const venueCount = $derived(app.pins.filter((p) => p.matched > 0).length);
 
   const padding = $derived({
@@ -70,6 +75,14 @@
     wasNarrowed = narrowed;
   });
 
+  // Frame a freshly drawn area in the visible part of the map.
+  let lastArea: unknown = null;
+  $effect(() => {
+    const area = app.area;
+    if (area && area !== lastArea) mapView?.fitTo(area);
+    lastArea = area;
+  });
+
   // New content starts at the top of the sheet.
   $effect(() => {
     void app.selectedEventId;
@@ -77,13 +90,25 @@
     sheet?.scrollTop();
   });
 
+  function fitResults() {
+    if (app.area) return mapView?.fitTo(app.area);
+    const ids = new Set(app.results.map((e) => e.venueId));
+    const pts = app.pins
+      .filter((p) => ids.has(p.venue.id))
+      .map((p) => [p.venue.lng, p.venue.lat] as [number, number]);
+    mapView?.fitTo(pts);
+  }
+
   function openFromList(e: AdeEvent) {
     mapView?.flyToVenue(e.venueId);
     app.openEvent(e.id);
   }
 
   function onkeydown(e: KeyboardEvent) {
-    if (e.key === 'Escape' && (app.selectedEventId || app.selectedVenueId || app.chooser)) app.back();
+    if (e.key !== 'Escape') return;
+    if (app.drawMode) app.drawMode = null;
+    else if (app.selectedEventId || app.selectedVenueId || app.chooser) app.back();
+    else if (app.area) app.clearArea();
   }
 </script>
 
@@ -93,6 +118,15 @@
   <MapView bind:this={mapView} onpick={(ids) => app.pick(ids)} {padding} />
   <TopBar onfilters={() => (filtersOpen = true)} />
   <FilterSheet bind:open={filtersOpen} />
+  <MapControls
+    bottom={app.wide ? 12 : sheetVisible}
+    onlocate={(p) => mapView?.showMe(p)}
+    onfit={fitResults}
+    onmessage={(text) => (toast = { text })}
+  />
+  {#if toast}
+    <Toast text={toast.text} action={toast.action} onclose={() => (toast = null)} />
+  {/if}
 
   <Sheet bind:this={sheet} bind:snap={app.sheet} bind:visible={sheetVisible} wide={app.wide}>
     {#snippet header()}
@@ -112,6 +146,11 @@
           <button class="icon-btn" aria-label="Close" onclick={() => app.close()}
             ><Icon name="close" /></button
           >
+        {:else if app.area}
+          <h2 aria-live="polite">
+            {plural(app.results.length, 'party', 'parties')} in this area<span class="sub">{dayLabel}</span>
+          </h2>
+          <button class="btn" onclick={() => app.clearArea()}>Clear area</button>
         {:else}
           <h2 aria-live="polite">
             {dayLabel} · {plural(app.results.length, 'party', 'parties')}

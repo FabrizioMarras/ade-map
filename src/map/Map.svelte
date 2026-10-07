@@ -6,7 +6,8 @@
   import { CENTRE, MAX_BOUNDS, bbox, spreadDuplicates, type LngLat } from '../lib/geo';
   import { app } from '../lib/store.svelte';
   import { loadStyle } from './basemap';
-  import { addAppLayers, pinsGeoJSON } from './layers';
+  import { Lasso } from './Lasso';
+  import { COLORS, addAppLayers, pinsGeoJSON } from './layers';
 
   interface Props {
     /** Venues under a tap (one or several overlapping). */
@@ -18,6 +19,8 @@
   let { onpick, padding }: Props = $props();
 
   let container: HTMLDivElement;
+  let overlay: HTMLCanvasElement;
+  let lasso: Lasso | undefined;
   let map: MlMap | undefined = $state();
   let styleReady = $state(false);
   let styleTheme: 'light' | 'dark' | null = null;
@@ -40,6 +43,7 @@
       maxBounds: MAX_BOUNDS,
       dragRotate: false,
       pitchWithRotate: false,
+      boxZoom: false, // shift + drag selects an area instead
       attributionControl: { compact: true },
     });
     map = m;
@@ -51,7 +55,14 @@
       addAppLayers(map!, styleTheme ?? 'light');
       styleReady = true;
     });
+    lasso = new Lasso({
+      map: m,
+      canvas: overlay,
+      color: () => (app.theme === 'dark' ? COLORS.accent : '#7a6500'),
+      ondone: (poly) => app.setArea(poly),
+    });
     map.on('click', (e) => {
+      if (app.drawMode) return;
       const r = 16;
       const { x, y } = e.point;
       const feats = map!.queryRenderedFeatures(
@@ -80,6 +91,7 @@
   });
 
   onDestroy(() => {
+    lasso?.destroy();
     map?.remove();
   });
 
@@ -118,6 +130,21 @@
       styleReady = false;
       map.setStyle(style, { diff: false });
     });
+  });
+
+  $effect(() => {
+    lasso?.setActive(app.drawMode !== null, app.drawMode ?? 'lasso');
+  });
+
+  // Show the selected area (re-applied after a style switch).
+  $effect(() => {
+    const area = app.area;
+    if (!map || !styleReady) return;
+    (map.getSource('area') as GeoJSONSource | undefined)?.setData(
+      area
+        ? { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [area] } }
+        : { type: 'FeatureCollection', features: [] },
+    );
   });
 
   // Push pin data whenever the result set or selection changes.
@@ -173,11 +200,20 @@
 </script>
 
 <div class="map" bind:this={container} data-fallback={usingFallback || undefined}></div>
+<canvas class="overlay" bind:this={overlay} aria-hidden="true"></canvas>
 
 <style>
   .map {
     position: absolute;
     inset: 0;
+  }
+  .overlay {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 5;
   }
   .map :global(.pulse) {
     pointer-events: none;

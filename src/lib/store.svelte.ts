@@ -1,4 +1,5 @@
-import { applyQuery, emptyFilters, type Filters } from './filter';
+import { applyQuery, emptyFilters, inArea, type Filters } from './filter';
+import type { LngLat } from './geo';
 import { formatHash, parseHash, type DayScope } from './hash';
 import { KEYS, readJSON, writeJSON } from './storage';
 import { defaultDay, nowWall } from './time';
@@ -38,6 +39,9 @@ class AppState {
   query = $state('');
   filters = $state<Filters>(emptyFilters());
   nowMode = $state(false);
+  /** Drawn selection polygon (closed ring, lng/lat). */
+  area = $state.raw<LngLat[] | null>(null);
+  drawMode = $state<'lasso' | 'box' | null>(null);
 
   themePref = $state<ThemePref>(readJSON<ThemePref>(KEYS.theme, 'auto'));
   theme = $derived<'light' | 'dark'>(this.themePref === 'auto' ? autoTheme(this.now) : this.themePref);
@@ -51,14 +55,15 @@ class AppState {
   });
 
   /** Events after every filter: the result set. */
-  results = $derived<AdeEvent[]>(
-    applyQuery(this.scopeEvents, {
+  results = $derived.by<AdeEvent[]>(() => {
+    const r = applyQuery(this.scopeEvents, {
       filters: this.filters,
       query: this.query,
       nowMode: this.nowMode,
       now: this.now,
-    }),
-  );
+    });
+    return this.area ? r.filter((e) => this.inArea(e)) : r;
+  });
 
   /** Results in list order: by start time. */
   listEvents = $derived(
@@ -180,6 +185,27 @@ class AppState {
 
   setNowMode(on: boolean) {
     this.nowMode = on;
+  }
+
+  inArea(e: AdeEvent): boolean {
+    return inArea(e, this.area);
+  }
+
+  setArea(poly: LngLat[] | null) {
+    this.area = poly;
+    this.drawMode = null;
+    if (poly) {
+      this.chooser = null;
+      this.selectedVenueId = null;
+      this.selectedEventId = null;
+      this.listMode = 'parties';
+      this.writeHash(false);
+      if (!this.wide && this.sheet === 'collapsed') this.sheet = 'half';
+    }
+  }
+
+  clearArea() {
+    this.area = null;
   }
 
   clearFilters() {

@@ -19,10 +19,11 @@
   const lateNight = $derived.by(() => {
     if (!singleDay || !afterMidnight || !app.data) return [];
     const next = app.data.eventsByDay.get(nextDay(app.day)) ?? [];
-    return applyQuery(
+    const late = applyQuery(
       next.filter((e) => e.lateNight),
       { filters: app.filters, query: app.query, nowMode: false, now: app.now },
     );
+    return app.area ? late.filter((e) => app.inArea(e)) : late;
   });
 
   const groups = $derived.by<Group[]>(() => {
@@ -67,6 +68,9 @@
     {/if}
     {#if app.query}
       <button class="btn" onclick={() => (app.query = '')}>Clear search</button>
+    {/if}
+    {#if app.area}
+      <button class="btn" onclick={() => app.clearArea()}>Clear area</button>
     {/if}
   </div>
 {/each}
