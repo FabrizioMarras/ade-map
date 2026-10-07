@@ -9,7 +9,7 @@
     "allowJs": true,
     "checkJs": true,
     "moduleDetection": "force",
-    "types": ["svelte", "vite/client"],
+    "types": ["svelte", "vite/client", "node"],
     "noEmit": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
