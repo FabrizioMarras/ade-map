@@ -47,3 +47,32 @@ test('deep link opens the party detail', async ({ page }) => {
   await expect(page.locator('.detail .title')).toContainText('313X020');
   await expect(page.locator('.detail .when')).toHaveText('Wed 21 · 14:00 → 23:30');
 });
+
+test('day switch updates counts; search finds line-up matches', async ({ page }) => {
+  await page.goto('./#d=23');
+  await ready(page);
+  const head = page.locator('.sheet-head h2');
+  await expect(head).toHaveText(/Fri 23 · 335 parties/);
+
+  const badges = () =>
+    page.evaluate(() => {
+      const m = (window as unknown as { __adeMap: import('maplibre-gl').Map }).__adeMap;
+      const src = m.getSource('venues') as unknown as { _data: { geojson?: GeoJSON.FeatureCollection } };
+      const fc = (src._data.geojson ?? src._data) as GeoJSON.FeatureCollection;
+      return fc.features.reduce((n, f) => n + (f.properties!.count as number), 0);
+    });
+  await expect.poll(badges).toBe(335);
+
+  await page.getByRole('button', { name: 'Sat 24' }).click();
+  await expect(head).toHaveText(/Sat 24 · 316 parties/);
+  await expect(page).toHaveURL(/d=24/);
+  await expect.poll(badges).toBe(316);
+
+  // Charlotte Adigéry only plays on Friday: Saturday offers the other-day match.
+  await page.getByRole('searchbox').fill('Charlotte');
+  await expect(head).toHaveText(/Sat 24 · 0 parties/);
+  await page.getByRole('button', { name: /1 more match on other days/ }).click();
+  await expect(head).toHaveText(/All days · 1 party/);
+  await expect(page.locator('.card').first()).toBeVisible();
+  await expect(page.locator('.card .note').first()).toContainText('Charlotte');
+});

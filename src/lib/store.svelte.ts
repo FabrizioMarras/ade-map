@@ -1,3 +1,4 @@
+import { applyQuery, emptyFilters, type Filters } from './filter';
 import { formatHash, parseHash, type DayScope } from './hash';
 import { KEYS, readJSON, writeJSON } from './storage';
 import { defaultDay, nowWall } from './time';
@@ -34,24 +35,38 @@ class AppState {
   sheet = $state<SheetSnap>('collapsed');
   wide = $state(typeof matchMedia !== 'undefined' && matchMedia('(min-width: 900px)').matches);
 
+  query = $state('');
+  filters = $state<Filters>(emptyFilters());
+  nowMode = $state(false);
+
   themePref = $state<ThemePref>(readJSON<ThemePref>(KEYS.theme, 'auto'));
   theme = $derived<'light' | 'dark'>(this.themePref === 'auto' ? autoTheme(this.now) : this.themePref);
 
-  /** Events in the selected day scope, before filters. */
+  /** Events in the selected day scope, before filters. Now mode spans days. */
   scopeEvents = $derived.by<AdeEvent[]>(() => {
     const d = this.data;
     if (!d) return [];
-    if (this.day === 'all' || this.day === 'fav') return d.events;
+    if (this.nowMode || this.day === 'all' || this.day === 'fav') return d.events;
     return d.eventsByDay.get(this.day) ?? [];
   });
 
   /** Events after every filter: the result set. */
-  results = $derived<AdeEvent[]>(this.scopeEvents);
+  results = $derived<AdeEvent[]>(
+    applyQuery(this.scopeEvents, {
+      filters: this.filters,
+      query: this.query,
+      nowMode: this.nowMode,
+      now: this.now,
+    }),
+  );
+
+  /** Pins only for venues in scope; in Now mode only venues with something on now/soon. */
+  pinEvents = $derived(this.nowMode ? this.results : this.scopeEvents);
 
   pins = $derived.by<VenuePin[]>(() => {
     const byVenue = new Map<string, VenuePin>();
     const matched = new Set(this.results.map((e) => e.id));
-    for (const e of this.scopeEvents) {
+    for (const e of this.pinEvents) {
       let p = byVenue.get(e.venueId);
       if (!p) {
         p = { venue: e.venue, count: 0, matched: 0, soldOutAll: true, live: false, fav: false };
@@ -151,6 +166,14 @@ class AppState {
     this.selectedEventId = null;
     this.selectedVenueId = null;
     this.writeHash(false);
+  }
+
+  setNowMode(on: boolean) {
+    this.nowMode = on;
+  }
+
+  clearFilters() {
+    this.filters = emptyFilters();
   }
 
   setTheme(pref: ThemePref) {

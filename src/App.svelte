@@ -5,7 +5,12 @@
   import { app } from './lib/store.svelte';
   import { festivalDay } from './lib/time';
   import MapView from './map/Map.svelte';
+  import { activeFilterCount } from './lib/filter';
+  import type { AdeEvent } from './lib/types';
   import EventDetail from './ui/EventDetail.svelte';
+  import FilterSheet from './ui/FilterSheet.svelte';
+  import ResultsList from './ui/ResultsList.svelte';
+  import TopBar from './ui/TopBar.svelte';
   import Icon from './ui/Icon.svelte';
   import Sheet from './ui/Sheet.svelte';
   import VenueChooser from './ui/VenueChooser.svelte';
@@ -14,6 +19,9 @@
   let mapView: MapView | undefined = $state();
   let sheet: Sheet | undefined = $state();
   let sheetVisible = $state(0);
+  let filtersOpen = $state(false);
+
+  const narrowed = $derived(!!app.query.trim() || app.nowMode || activeFilterCount(app.filters) > 0);
 
   const padding = $derived({
     top: 120,
@@ -23,7 +31,13 @@
   });
 
   const dayLabel = $derived(
-    app.day === 'all' ? 'All days' : app.day === 'fav' ? 'My list' : (festivalDay(app.day)?.short ?? ''),
+    app.nowMode
+      ? 'Now'
+      : app.day === 'all'
+        ? 'All days'
+        : app.day === 'fav'
+          ? 'My list'
+          : (festivalDay(app.day)?.short ?? ''),
   );
 
   onMount(async () => {
@@ -47,12 +61,24 @@
     if (id) mapView.flyToVenue(id);
   });
 
+  // Reveal the results when a search, filter or Now mode first narrows the list.
+  let wasNarrowed = false;
+  $effect(() => {
+    if (narrowed && !wasNarrowed && !app.wide && app.sheet === 'collapsed') app.sheet = 'half';
+    wasNarrowed = narrowed;
+  });
+
   // New content starts at the top of the sheet.
   $effect(() => {
     void app.selectedEventId;
     void app.selectedVenueId;
     sheet?.scrollTop();
   });
+
+  function openFromList(e: AdeEvent) {
+    mapView?.flyToVenue(e.venueId);
+    app.openEvent(e.id);
+  }
 
   function onkeydown(e: KeyboardEvent) {
     if (e.key === 'Escape' && (app.selectedEventId || app.selectedVenueId || app.chooser)) app.back();
@@ -63,6 +89,8 @@
 
 <div class="app">
   <MapView bind:this={mapView} onpick={(ids) => app.pick(ids)} {padding} />
+  <TopBar onfilters={() => (filtersOpen = true)} />
+  <FilterSheet bind:open={filtersOpen} />
 
   <Sheet bind:this={sheet} bind:snap={app.sheet} bind:visible={sheetVisible} wide={app.wide}>
     {#snippet header()}
@@ -106,6 +134,8 @@
       />
     {:else if app.selectedVenue}
       <VenueView venue={app.selectedVenue} />
+    {:else if narrowed}
+      <ResultsList onopen={openFromList} />
     {:else}
       <p class="empty">Tap a pin to see its parties.</p>
     {/if}
