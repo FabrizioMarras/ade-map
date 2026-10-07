@@ -1,0 +1,6 @@
+public/data
+data
+dist
+package-lock.json
+scripts/.cache
+PLAN.md

@@ -1,0 +1,16 @@
+:root {
+  color-scheme: light dark;
+  --bg: #f6f6f3;
+  --fg: #111;
+}
+html,
+body,
+#app {
+  margin: 0;
+  height: 100%;
+}
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: system-ui, sans-serif;
+}
