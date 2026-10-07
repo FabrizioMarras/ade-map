@@ -20,9 +20,15 @@ export async function pinPoint(page: Page, lngLat: [number, number]) {
 }
 
 export async function jumpTo(page: Page, lngLat: [number, number], zoom: number) {
+  // Wait for 'idle' (tiles and pins drawn at the new view), not a fixed delay: slower
+  // machines (CI) need longer before taps can hit the pins.
   await page.evaluate(
-    ([c, z]) => (window as W).__adeMap!.jumpTo({ center: c as [number, number], zoom: z as number }),
+    ([c, z]) =>
+      new Promise<void>((resolve) => {
+        const m = (window as W).__adeMap!;
+        m.once('idle', () => resolve());
+        m.jumpTo({ center: c as [number, number], zoom: z as number });
+      }),
     [lngLat, zoom] as const,
   );
-  await page.waitForTimeout(300);
 }
