@@ -40,7 +40,7 @@
     top: 120,
     bottom: app.wide ? 0 : sheetVisible,
     left: app.wide ? 400 : 0,
-    right: 0,
+    right: 56, // the map control stack
   });
 
   const dayLabel = $derived(
@@ -153,6 +153,21 @@
     void app.selectedEventId;
     void app.selectedVenueId;
     if (focusWasInSheet) (document.querySelector('.sheet-head h2') as HTMLElement | null)?.focus();
+  });
+
+  // Searching moves the map to the matches: fly to a single venue or frame them all.
+  // Debounced so the map doesn't jump on every keystroke.
+  let searchTimer: ReturnType<typeof setTimeout> | undefined;
+  $effect(() => {
+    const q = app.query.trim();
+    const venueIds = [...new Set(app.results.map((e) => e.venueId))];
+    clearTimeout(searchTimer);
+    if (!q || !venueIds.length || app.selectedEventId || app.selectedVenueId) return;
+    searchTimer = setTimeout(() => {
+      if (venueIds.length === 1) mapView?.flyToVenue(venueIds[0]);
+      else fitResults();
+    }, 450);
+    return () => clearTimeout(searchTimer);
   });
 
   function fitResults() {

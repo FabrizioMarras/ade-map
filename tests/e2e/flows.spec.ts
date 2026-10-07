@@ -182,3 +182,63 @@ test('favourites: star, My list with clash note, survives reload', async ({ page
   await page.getByRole('button', { name: 'Back' }).click();
   await expect(page.locator('.card')).toHaveCount(1);
 });
+
+test('search moves the map to the matching venues', async ({ page }) => {
+  await page.goto('./#d=23');
+  await ready(page);
+  type W = Window & { __adeMap: import('maplibre-gl').Map };
+
+  /** Matching venue pins (not faded), with their screen position. */
+  const matches = () =>
+    page.evaluate(() => {
+      const m = (window as unknown as W).__adeMap;
+      const src = m.getSource('venues') as unknown as { _data: { geojson?: GeoJSON.FeatureCollection } };
+      const fc = (src._data.geojson ?? src._data) as GeoJSON.FeatureCollection;
+      return fc.features
+        .filter((f) => !f.properties!.dim)
+        .map((f) => {
+          const p = m.project((f.geometry as GeoJSON.Point).coordinates as [number, number]);
+          return { name: f.properties!.name as string, x: p.x, y: p.y };
+        });
+    });
+  // Wait past the 450 ms search debounce and the camera animation.
+  const settled = async () => {
+    await page.waitForTimeout(1200);
+    await page.waitForFunction(() => !(window as unknown as W).__adeMap.isMoving());
+  };
+  const sheetTop = async () => (await page.locator('.sheet').boundingBox())!.y;
+
+  // A single artist: the map flies to their venue and zooms in.
+  await page.getByRole('searchbox').fill('Charlotte');
+  await expect(page.locator('.card .note').first()).toContainText('Charlotte');
+  await settled();
+  const one = await matches();
+  expect(one.map((v) => v.name)).toEqual(['Paradiso']);
+  const vp = page.viewportSize()!;
+  expect(one[0].x).toBeGreaterThan(0);
+  expect(one[0].x).toBeLessThan(vp.width);
+  expect(one[0].y).toBeGreaterThan(100);
+  expect(one[0].y).toBeLessThan(await sheetTop());
+  expect(await page.evaluate(() => (window as unknown as W).__adeMap.getZoom())).toBeGreaterThanOrEqual(15);
+
+  // Several venues: all of them end up in the visible part of the map.
+  await page.getByRole('searchbox').fill('techno');
+  await settled();
+  const many = await matches();
+  // Every match is highlighted, not only the selected venue.
+  const hl = await page.evaluate(() => {
+    const m = (window as unknown as W).__adeMap;
+    const src = m.getSource('venues') as unknown as { _data: { geojson?: GeoJSON.FeatureCollection } };
+    const fc = (src._data.geojson ?? src._data) as GeoJSON.FeatureCollection;
+    return fc.features.filter((f) => f.properties!.hl).length;
+  });
+  expect(hl).toBe(many.length);
+  expect(many.length).toBeGreaterThan(3);
+  const top = await sheetTop();
+  for (const v of many) {
+    expect(v.x, v.name).toBeGreaterThanOrEqual(0);
+    expect(v.x, v.name).toBeLessThanOrEqual(vp.width);
+    expect(v.y, v.name).toBeGreaterThanOrEqual(0);
+    expect(v.y, v.name).toBeLessThanOrEqual(top);
+  }
+});

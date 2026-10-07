@@ -29,6 +29,8 @@ export function pinsGeoJSON(
   pins: VenuePin[],
   coords: Map<string, [number, number]>,
   selectedId: string | null,
+  /** A search is active: matching venues get labels at every zoom, others fade further. */
+  searching = false,
 ): GeoJSON.FeatureCollection {
   return {
     type: 'FeatureCollection',
@@ -39,8 +41,11 @@ export function pinsGeoJSON(
         id: p.venue.id,
         name: p.venue.name,
         count: p.count,
-        label: p.count > 1 ? String(p.count) : '',
+        // While searching, the badge counts matching parties rather than all parties.
+        label: searching ? (p.matched > 1 ? String(p.matched) : '') : p.count > 1 ? String(p.count) : '',
         dim: p.matched === 0,
+        hl: searching && p.matched > 0,
+        searching,
         soldOut: p.soldOutAll,
         live: p.live,
         fav: p.fav,
@@ -54,13 +59,18 @@ export function pinsGeoJSON(
 function radius(selectedScale = 1): ExpressionSpecification {
   const stop = (multi: number, single: number): ExpressionSpecification => [
     '*',
-    ['case', ['get', 'selected'], selectedScale, 1],
+    ['case', ['get', 'selected'], selectedScale, ['get', 'hl'], 1.15, 1],
     ['case', ['>', ['get', 'count'], 1], multi, single],
   ];
   return ['interpolate', ['linear'], ['zoom'], 11, stop(6, 3.5), 14, stop(10, 6), 17, stop(13, 9)];
 }
 
-const opacity: ExpressionSpecification = ['case', ['get', 'dim'], 0.3, 1];
+const opacity: ExpressionSpecification = [
+  'case',
+  ['get', 'dim'],
+  ['case', ['get', 'searching'], 0.15, 0.3],
+  1,
+];
 
 /** Add (or re-add after a style switch) all app sources and layers. */
 export function addAppLayers(map: MlMap, theme: 'light' | 'dark') {
@@ -124,9 +134,10 @@ export function addAppLayers(map: MlMap, theme: 'light' | 'dark') {
     layout: { 'circle-sort-key': ['case', ['get', 'selected'], 3, ['get', 'dim'], 0, ['get', 'fav'], 2, 1] },
     paint: {
       'circle-radius': radius(1.35),
+      // Selected venue and search matches share the accent colour.
       'circle-color': [
         'case',
-        ['get', 'selected'],
+        ['any', ['get', 'selected'], ['get', 'hl']],
         COLORS.accent,
         ['get', 'soldOut'],
         COLORS.soldOut,
@@ -135,8 +146,16 @@ export function addAppLayers(map: MlMap, theme: 'light' | 'dark') {
         c.pin,
       ],
       'circle-opacity': opacity,
-      'circle-stroke-color': ['case', ['get', 'fav'], COLORS.accent, c.halo],
-      'circle-stroke-width': ['case', ['get', 'fav'], 3, ['get', 'selected'], 2.5, 1.5],
+      // A dark ring keeps yellow matches readable on the light basemap (favourites too).
+      'circle-stroke-color': ['case', ['get', 'hl'], '#000000', ['get', 'fav'], COLORS.accent, c.halo],
+      'circle-stroke-width': [
+        'case',
+        ['get', 'fav'],
+        3,
+        ['any', ['get', 'selected'], ['get', 'hl']],
+        2.5,
+        1.5,
+      ],
       'circle-stroke-opacity': opacity,
     },
   });
@@ -144,7 +163,7 @@ export function addAppLayers(map: MlMap, theme: 'light' | 'dark') {
     id: 'pin-count',
     type: 'symbol',
     source: 'venues',
-    filter: ['>', ['get', 'count'], 1],
+    filter: ['!=', ['get', 'label'], ''],
     minzoom: 12.2,
     layout: {
       'text-field': ['get', 'label'],
@@ -155,7 +174,7 @@ export function addAppLayers(map: MlMap, theme: 'light' | 'dark') {
       'symbol-sort-key': ['case', ['get', 'dim'], 0, 1],
     },
     paint: {
-      'text-color': ['case', ['any', ['get', 'selected'], ['get', 'live']], '#000000', c.text],
+      'text-color': ['case', ['any', ['get', 'selected'], ['get', 'hl'], ['get', 'live']], '#000000', c.text],
       'text-opacity': opacity,
     },
   });
@@ -163,9 +182,9 @@ export function addAppLayers(map: MlMap, theme: 'light' | 'dark') {
     id: 'pin-labels',
     type: 'symbol',
     source: 'venues',
-    minzoom: 14,
     layout: {
-      'text-field': ['get', 'name'],
+      // Names from zoom 14; search matches are labelled at every zoom.
+      'text-field': ['step', ['zoom'], ['case', ['get', 'hl'], ['get', 'name'], ''], 14, ['get', 'name']],
       'text-font': FONT_BOLD,
       'text-size': 11.5,
       'text-anchor': 'left',
@@ -176,6 +195,8 @@ export function addAppLayers(map: MlMap, theme: 'light' | 'dark') {
         'case',
         ['get', 'selected'],
         0,
+        ['get', 'hl'],
+        1,
         ['get', 'dim'],
         3,
         ['-', 2, ['/', ['get', 'count'], 100]],

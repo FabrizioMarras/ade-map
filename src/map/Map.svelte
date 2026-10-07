@@ -149,22 +149,40 @@
 
   // Push pin data whenever the result set or selection changes.
   $effect(() => {
-    const data = pinsGeoJSON(app.pins, coords, app.focusVenueId);
+    const data = pinsGeoJSON(app.pins, coords, app.focusVenueId, app.query.trim().length > 0);
     if (!map || !styleReady) return;
     (map.getSource('venues') as GeoJSONSource | undefined)?.setData(data);
   });
 
+  /**
+   * Centre in the part of the map the sheet/panel leaves visible. An offset is used
+   * instead of flyTo's `padding`, which MapLibre would keep and add to later fitBounds calls.
+   */
+  function visibleOffset(): [number, number] {
+    return [(padding.left - padding.right) / 2, (padding.top - padding.bottom) / 2];
+  }
+
   export function flyToVenue(id: string) {
     const c = coords.get(id);
     if (!map || !c) return;
-    map.flyTo({ center: c, zoom: Math.max(map.getZoom(), 15), padding, duration: reducedMotion ? 0 : 800 });
+    map.flyTo({
+      center: c,
+      zoom: Math.max(map.getZoom(), 15),
+      offset: visibleOffset(),
+      duration: reducedMotion ? 0 : 800,
+    });
   }
 
   export function fitTo(points: LngLat[]) {
     if (!map || !points.length) return;
     const duration = reducedMotion ? 0 : 600;
     if (points.length === 1) {
-      return map.flyTo({ center: points[0], zoom: Math.max(map.getZoom(), 15), padding, duration });
+      return map.flyTo({
+        center: points[0],
+        zoom: Math.max(map.getZoom(), 15),
+        offset: visibleOffset(),
+        duration,
+      });
     }
     const pad = (n: number) => n + 40;
     map.fitBounds(bbox(points), {
@@ -189,7 +207,7 @@
     map.flyTo({
       center: lngLat,
       zoom: Math.max(map.getZoom(), 15),
-      padding,
+      offset: visibleOffset(),
       duration: reducedMotion ? 0 : 800,
     });
   }
