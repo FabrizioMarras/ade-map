@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-07T16:48:45.796Z",
+  "generated": "2026-10-07T17:42:22.319Z",
   "events": 1263,
   "venues": 317,
   "byDay": {
@@ -11,16 +11,12 @@
   },
   "manualFixes": [
     {
-      "id": "1588",
-      "name": "WestWeelde"
-    },
-    {
       "id": "1594",
       "name": "Gashouder"
     },
     {
-      "id": "1670811",
-      "name": "Pacific Amsterdam"
+      "id": "1588",
+      "name": "WestWeelde"
     },
     {
       "id": "2070197",
@@ -31,24 +27,28 @@
       "name": "50:HERTZ CLUB TRAIN 2026"
     },
     {
-      "id": "2683592",
-      "name": "Wereldmuseum Amsterdam"
+      "id": "2818662",
+      "name": "Oceandiva Original"
+    },
+    {
+      "id": "2842954",
+      "name": "Transit"
     },
     {
       "id": "2772820",
       "name": "De Wester"
     },
     {
-      "id": "2818662",
-      "name": "Oceandiva Original"
+      "id": "2683592",
+      "name": "Wereldmuseum Amsterdam"
+    },
+    {
+      "id": "1670811",
+      "name": "Pacific Amsterdam"
     },
     {
       "id": "2818668",
       "name": "Oceandiva Original"
-    },
-    {
-      "id": "2842954",
-      "name": "Transit"
     }
   ]
 }

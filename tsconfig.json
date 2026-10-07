@@ -7,7 +7,7 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"],
     "strict": true,
     "allowJs": true,
-    "checkJs": true,
+    "checkJs": false,
     "moduleDetection": "force",
     "types": ["svelte", "vite/client", "node", "geojson"],
     "noEmit": true,

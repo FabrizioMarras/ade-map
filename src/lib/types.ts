@@ -22,8 +22,8 @@ export interface RawEvent {
   categories: string;
   interests: string[];
   lineup: string[];
-  ticketUrl: string;
-  ticketText: string;
+  ticketUrl: string | null;
+  ticketText: string | null;
   image: string;
   description: string;
 }

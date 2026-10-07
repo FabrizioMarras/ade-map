@@ -12,7 +12,13 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "data:program": "node scripts/fetch-program.mjs",
+    "data:pages": "node scripts/fetch-event-pages.mjs",
+    "data:geocode": "node scripts/geocode.mjs",
+    "data:build": "node scripts/build-data.mjs",
+    "data:refresh": "npm run data:program && npm run data:pages && npm run data:geocode && npm run data:build",
+    "icons": "node scripts/make-icons.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -24,6 +30,7 @@
     "eslint": "^10.12.0",
     "eslint-plugin-svelte": "^3.23.0",
     "globals": "^17.13.0",
+    "node-html-parser": "^9.0.4",
     "prettier": "^3.9.9",
     "prettier-plugin-svelte": "^4.1.1",
     "svelte": "^5.57.2",

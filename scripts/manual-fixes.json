@@ -1,0 +1,82 @@
+[
+  {
+    "id": "1588",
+    "name": "WestWeelde",
+    "address": "Klönneplein 4, Amsterdam",
+    "lat": 52.3862,
+    "lng": 4.8757,
+    "note": "manual (approx.)"
+  },
+  {
+    "id": "1594",
+    "name": "Gashouder",
+    "address": "Klönneplein 1, Amsterdam",
+    "lat": 52.3864,
+    "lng": 4.8742,
+    "note": "manual (approx.)"
+  },
+  {
+    "id": "1670811",
+    "name": "Pacific Amsterdam",
+    "address": "Polonceaukade 23, Amsterdam",
+    "lat": 52.3878,
+    "lng": 4.8735,
+    "note": "manual (approx.)"
+  },
+  {
+    "id": "2070197",
+    "name": "De Sering",
+    "address": "Rhoneweg, 6, Amsterdam",
+    "lat": 52.3946,
+    "lng": 4.8372,
+    "note": "manual (approx.)"
+  },
+  {
+    "id": "2498154",
+    "name": "50:HERTZ CLUB TRAIN 2026",
+    "address": "Amsterdam Central Station, Amsterdam",
+    "lat": 52.3791,
+    "lng": 4.9003,
+    "note": "manual"
+  },
+  {
+    "id": "2683592",
+    "name": "Wereldmuseum Amsterdam",
+    "address": "2 Linnaeusstraat, Amsterdam",
+    "lat": 52.3627,
+    "lng": 4.9215,
+    "note": "manual (approx.)"
+  },
+  {
+    "id": "2772820",
+    "name": "De Wester",
+    "address": "Klönneplein 6, Amsterdam",
+    "lat": 52.386,
+    "lng": 4.8762,
+    "note": "manual (approx.)"
+  },
+  {
+    "id": "2818662",
+    "name": "Oceandiva Original",
+    "address": "tt. Melissaweg 60, Amsterdam",
+    "lat": 52.4,
+    "lng": 4.8925,
+    "note": "manual (approx.)"
+  },
+  {
+    "id": "2818668",
+    "name": "Oceandiva Original",
+    "address": "tt Melissaweg 60, Amsterdam",
+    "lat": 52.4,
+    "lng": 4.8925,
+    "note": "manual (approx.)"
+  },
+  {
+    "id": "2842954",
+    "name": "Transit",
+    "address": "Aambeeldstraat 38, Amsterdam",
+    "lat": 52.3853,
+    "lng": 4.9312,
+    "note": "manual (approx.)"
+  }
+]
