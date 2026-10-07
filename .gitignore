@@ -5,3 +5,4 @@ playwright-report
 scripts/.cache
 scripts/raw
 .DS_Store
+.shot.mjs

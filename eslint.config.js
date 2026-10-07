@@ -18,10 +18,16 @@ export default ts.config(
   js.configs.recommended,
   ...ts.configs.recommended,
   ...svelte.configs.recommended,
-  { languageOptions: { globals: { ...globals.browser, ...globals.node } } },
+  { languageOptions: { globals: { ...globals.browser, ...globals.node, GeoJSON: "readonly" } } },
   {
     files: ['**/*.svelte', '**/*.svelte.ts'],
     languageOptions: { parserOptions: { parser: ts.parser } },
   },
-  { rules: { '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }] } },
+  {
+    rules: {
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      // Local Maps/Sets built inside $derived are intentionally non-reactive.
+      'svelte/prefer-svelte-reactivity': 'off',
+    },
+  },
 );
