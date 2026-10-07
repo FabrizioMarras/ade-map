@@ -190,7 +190,7 @@
     {:else if app.listMode === 'venues'}
       <VenueList />
     {:else}
-      <PartyList onopen={openFromList} />
+      <PartyList onopen={openFromList} onmessage={(text) => (toast = { text })} />
     {/if}
   </Sheet>
 </div>

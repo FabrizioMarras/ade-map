@@ -43,6 +43,8 @@ class AppState {
   area = $state.raw<LngLat[] | null>(null);
   drawMode = $state<'lasso' | 'box' | null>(null);
 
+  favs = $state.raw<Set<number>>(new Set(readJSON<number[]>(KEYS.favs, [])));
+
   themePref = $state<ThemePref>(readJSON<ThemePref>(KEYS.theme, 'auto'));
   theme = $derived<'light' | 'dark'>(this.themePref === 'auto' ? autoTheme(this.now) : this.themePref);
 
@@ -50,7 +52,8 @@ class AppState {
   scopeEvents = $derived.by<AdeEvent[]>(() => {
     const d = this.data;
     if (!d) return [];
-    if (this.nowMode || this.day === 'all' || this.day === 'fav') return d.events;
+    if (this.day === 'fav' && !this.nowMode) return d.events.filter((e) => this.favs.has(e.id));
+    if (this.nowMode || this.day === 'all') return d.events;
     return d.eventsByDay.get(this.day) ?? [];
   });
 
@@ -91,6 +94,7 @@ class AppState {
       if (matched.has(e.id)) p.matched++;
       if (!e.soldOut) p.soldOutAll = false;
       if (e.startMs <= this.now && this.now < e.endMs) p.live = true;
+      if (this.favs.has(e.id)) p.fav = true;
     }
     return [...byVenue.values()];
   });
@@ -111,6 +115,10 @@ class AppState {
     if (this.selectedEventId) this.sheet = 'expanded';
     else if (this.selectedVenueId) this.sheet = 'half';
     window.addEventListener('popstate', () => this.applyHash(location.hash));
+    // Keep favourites in sync across tabs.
+    window.addEventListener('storage', (e) => {
+      if (e.key === KEYS.favs) this.favs = new Set(readJSON<number[]>(KEYS.favs, []));
+    });
     matchMedia('(min-width: 900px)').addEventListener('change', (e) => (this.wide = e.matches));
     setInterval(() => (this.now = nowWall()), 30_000);
   }
@@ -185,6 +193,22 @@ class AppState {
 
   setNowMode(on: boolean) {
     this.nowMode = on;
+  }
+
+  isFav(id: number): boolean {
+    return this.favs.has(id);
+  }
+
+  toggleFav(id: number) {
+    const next = new Set(this.favs);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    this.setFavs(next);
+  }
+
+  setFavs(ids: Set<number>) {
+    this.favs = ids;
+    writeJSON(KEYS.favs, [...ids]);
   }
 
   inArea(e: AdeEvent): boolean {

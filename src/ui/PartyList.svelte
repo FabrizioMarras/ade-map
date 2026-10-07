@@ -1,7 +1,8 @@
 <script lang="ts">
   import { activeFilterCount, applyQuery } from '../lib/filter';
   import { plural } from '../lib/format';
-  import { groupByHour, nextDay, type Group } from '../lib/group';
+  import { clashes, exportFavs, importFavs } from '../lib/favs';
+  import { groupByDay, groupByHour, nextDay, type Group } from '../lib/group';
   import { matchingArtists, search, tokens } from '../lib/search';
   import { KEYS, readJSON, writeJSON } from '../lib/storage';
   import { app } from '../lib/store.svelte';
@@ -9,11 +10,20 @@
   import type { AdeEvent } from '../lib/types';
   import EventCard from './EventCard.svelte';
 
-  let { onopen }: { onopen: (e: AdeEvent) => void } = $props();
+  interface Props {
+    onopen: (e: AdeEvent) => void;
+    onmessage: (text: string) => void;
+  }
+
+  let { onopen, onmessage }: Props = $props();
 
   let afterMidnight = $state(readJSON(KEYS.afterMidnight, true));
   const toks = $derived(tokens(app.query));
   const singleDay = $derived(!app.nowMode && app.day !== 'all' && app.day !== 'fav');
+  const favMode = $derived(!app.nowMode && app.day === 'fav');
+  const clashMap = $derived(
+    clashes(app.data ? [...app.favs].map((id) => app.data!.eventsById.get(id)!).filter(Boolean) : []),
+  );
 
   /** Next day's 00:00–05:59 parties that pass the same filters. */
   const lateNight = $derived.by(() => {
@@ -27,6 +37,7 @@
   });
 
   const groups = $derived.by<Group[]>(() => {
+    if (favMode) return groupByDay(app.listEvents);
     const g = groupByHour(app.listEvents, !singleDay);
     if (lateNight.length) g.push({ key: 'after', label: 'After midnight', events: lateNight, divider: true });
     return g;
@@ -40,8 +51,32 @@
   const nextLabel = $derived(singleDay ? festivalDay(nextDay(app.day))?.short : undefined);
 
   function note(e: AdeEvent): string | undefined {
+    const parts: string[] = [];
     const hits = matchingArtists(e, toks);
-    return hits.length ? `With ${hits.join(', ')}` : undefined;
+    if (hits.length) parts.push(`With ${hits.join(', ')}`);
+    const clash = app.favs.has(e.id) ? clashMap.get(e.id) : undefined;
+    if (clash?.length) parts.push(`⚠ Clashes with ${clash.map((c) => c.title).join(', ')}`);
+    return parts.join(' · ') || undefined;
+  }
+
+  async function doExport() {
+    const blob = exportFavs(app.favs);
+    try {
+      await navigator.clipboard.writeText(blob);
+      onmessage(`Copied ${plural(app.favs.size, 'favourite')} to the clipboard`);
+    } catch {
+      window.prompt('Copy your list:', blob);
+    }
+  }
+
+  function doImport() {
+    const text = window.prompt('Paste an exported list (ADE2026-FAVS:…)');
+    if (!text || !app.data) return;
+    const ids = importFavs(text, (id) => app.data!.eventsById.has(id));
+    if (!ids.length) return onmessage('No parties found in that text');
+    const before = app.favs.size;
+    app.setFavs(new Set([...app.favs, ...ids]));
+    onmessage(`Added ${plural(app.favs.size - before, 'party', 'parties')} to your list`);
   }
 
   function toggleAfterMidnight() {
@@ -57,12 +92,22 @@
       {#if g.divider && nextLabel}<span>from {nextLabel}</span>{/if}
     </h3>
     {#each g.events as e (e.id)}
-      <EventCard event={e} showVenue showDay={!singleDay || g.divider} note={note(e)} {onopen} />
+      <EventCard
+        event={e}
+        showVenue
+        showDay={(!singleDay && !favMode) || g.divider}
+        note={note(e)}
+        {onopen}
+      />
     {/each}
   </section>
 {:else}
   <div class="empty">
-    <p>No parties match{app.nowMode ? ' right now' : ''}.</p>
+    {#if favMode && !app.favs.size}
+      <p>Your list is empty. Tap ☆ on any party to add it.</p>
+    {:else}
+      <p>No parties match{app.nowMode ? ' right now' : ''}.</p>
+    {/if}
     {#if activeFilterCount(app.filters)}
       <button class="btn" onclick={() => app.clearFilters()}>Clear filters</button>
     {/if}
@@ -80,6 +125,13 @@
     <button class="btn" onclick={() => app.setDay('all')}>
       {plural(elsewhere, 'more match', 'more matches')} on other days
     </button>
+  </div>
+{/if}
+
+{#if favMode}
+  <div class="actions transfer">
+    <button class="btn" disabled={!app.favs.size} onclick={doExport}>Export list</button>
+    <button class="btn" onclick={doImport}>Import list</button>
   </div>
 {/if}
 
@@ -114,9 +166,8 @@
     letter-spacing: 0;
     margin-left: 6px;
   }
-  .group :global(.card) {
-    content-visibility: auto;
-    contain-intrinsic-size: auto 96px;
+  .transfer {
+    justify-content: center;
   }
   .setting {
     display: flex;

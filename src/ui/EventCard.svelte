@@ -3,6 +3,7 @@
   import { app } from '../lib/store.svelte';
   import { shortRange, status } from '../lib/time';
   import type { AdeEvent } from '../lib/types';
+  import Star from './Star.svelte';
 
   interface Props {
     event: AdeEvent;
@@ -33,6 +34,7 @@
       {#each cardTags(event) as t (t)}<span class="tag">{t}</span>{/each}
     </span>
   </button>
+  <Star id={event.id} title={event.title} />
 </article>
 
 <style>
@@ -40,6 +42,10 @@
     display: flex;
     align-items: stretch;
     border-bottom: 1px solid var(--line);
+  }
+  .card :global(.star) {
+    align-self: flex-start;
+    margin: 6px 4px 0 0;
   }
   .card.ended {
     opacity: 0.55;

@@ -10,6 +10,7 @@
       count: app.data?.eventsByDay.get(d.key)?.length ?? 0,
     })),
     { key: 'all', label: 'All', count: app.data?.events.length ?? 0 },
+    { key: 'fav', label: 'My list', count: app.favs.size },
   ]);
 </script>
 
@@ -23,7 +24,8 @@
         app.setDay(c.key);
       }}
     >
-      {c.label}
+      {#if c.key === 'fav'}<span class="star" aria-hidden="true">★</span>{/if}{c.label}
+      {#if c.key === 'fav' && c.count}<span class="n tnum">{c.count}</span>{/if}
     </button>
   {/each}
 </div>
@@ -52,6 +54,14 @@
     text-transform: uppercase;
     letter-spacing: 0.02em;
     box-shadow: 0 1px 4px rgb(0 0 0 / 0.12);
+  }
+  .star {
+    margin-right: 4px;
+  }
+  .n {
+    margin-left: 6px;
+    font-size: 14px;
+    opacity: 0.8;
   }
   .chip[aria-pressed='true'] {
     background: var(--accent);

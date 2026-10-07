@@ -152,3 +152,33 @@ test('lasso around Rembrandtplein lists only those venues', async ({ page }) => 
   await page.getByRole('button', { name: 'Clear area' }).first().click();
   await expect(head).toHaveText(/Sat 24 · 316 parties/);
 });
+
+test('favourites: star, My list with clash note, survives reload', async ({ page }) => {
+  await page.goto('./#d=23');
+  await ready(page);
+  await page.getByRole('button', { name: 'Expand panel' }).click();
+  // Two parties in the same hour group always overlap.
+  const group = page.locator('.group').filter({ has: page.locator('.hour', { hasText: /^\s*22:00/ }) });
+  const stars = group.locator('.card .star');
+  await stars.nth(0).click();
+  await stars.nth(1).click();
+  await expect(stars.nth(0)).toHaveAttribute('aria-pressed', 'true');
+
+  const myList = page.getByRole('button', { name: /My list/ });
+  await expect(myList).toContainText('2');
+  await myList.click();
+  await expect(page).toHaveURL(/d=fav/);
+  await expect(page.locator('.card')).toHaveCount(2);
+  await expect(page.locator('.card .note').first()).toContainText('Clashes with');
+
+  await page.reload();
+  await expect(page.locator('.card')).toHaveCount(2);
+  await expect(page.getByRole('button', { name: /My list/ })).toContainText('2');
+
+  // Un-star from the detail view.
+  await page.getByRole('button', { name: 'Expand panel' }).click();
+  await page.locator('.card .main').first().click();
+  await page.locator('.detail .star').click();
+  await page.getByRole('button', { name: 'Back' }).click();
+  await expect(page.locator('.card')).toHaveCount(1);
+});

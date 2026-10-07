@@ -31,6 +31,9 @@
     collapsed: sheetH - HANDLE,
   });
   const offset = $derived(dragY ?? offsets[snap]);
+  let grabH = $state(56);
+  /** Limit the scroll area to the on-screen part of the sheet (kept fixed while dragging). */
+  const bodyMax = $derived(wide ? undefined : `${Math.max(0, sheetH - offsets[snap] - grabH)}px`);
 
   $effect(() => {
     visible = wide ? 0 : Math.min(sheetH - offsets[snap], Math.round(vh * 0.45));
@@ -87,6 +90,7 @@
 >
   <div
     class="grab"
+    bind:clientHeight={grabH}
     role="presentation"
     onpointerdown={down}
     onpointermove={move}
@@ -104,7 +108,7 @@
     {/if}
     {@render header()}
   </div>
-  <div class="body" bind:this={body} inert={!wide && snap === 'collapsed'}>
+  <div class="body" bind:this={body} style:max-height={bodyMax} inert={!wide && snap === 'collapsed'}>
     {@render children()}
   </div>
 </section>

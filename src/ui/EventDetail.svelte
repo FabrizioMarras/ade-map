@@ -6,6 +6,7 @@
   import { status, statusLabel, timeRange } from '../lib/time';
   import type { AdeEvent, FacetKey } from '../lib/types';
   import Icon from './Icon.svelte';
+  import Star from './Star.svelte';
 
   interface Props {
     event: AdeEvent;
@@ -48,7 +49,10 @@
   {/if}
 
   <header>
-    <h3 class="title">{event.title}</h3>
+    <div class="title-row">
+      <h3 class="title">{event.title}</h3>
+      <Star id={event.id} title={event.title} size={28} />
+    </div>
     {#if event.subtitle}<p class="subtitle">{event.subtitle}</p>{/if}
     <p class="when tnum">{timeRange(event)}</p>
     <p class="status" data-status={st}>
@@ -117,7 +121,14 @@
   header {
     padding: 14px 16px 4px;
   }
+  .title-row {
+    display: flex;
+    gap: 4px;
+    align-items: flex-start;
+  }
   .title {
+    flex: 1;
+    min-width: 0;
     margin: 0;
     font-family: var(--font-display);
     font-size: 30px;

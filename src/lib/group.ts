@@ -33,3 +33,14 @@ export function nextDay(day: string): string {
   d.setUTCDate(d.getUTCDate() + 1);
   return d.toISOString().slice(0, 10);
 }
+
+/** Group events (sorted by start) by festival day. */
+export function groupByDay(events: AdeEvent[]): Group[] {
+  const groups: Group[] = [];
+  for (const e of events) {
+    const last = groups[groups.length - 1];
+    if (last?.key === e.day) last.events.push(e);
+    else groups.push({ key: e.day, label: dayShort(e.startMs), events: [e] });
+  }
+  return groups;
+}
