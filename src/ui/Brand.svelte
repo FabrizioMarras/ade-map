@@ -1,5 +1,5 @@
-<!-- Always-visible credit, top right, in the slot under the round buttons that the top bar
-     leaves free; the expanded sheet stops below it. -->
+<!-- Always-visible credit in the top-right corner, above the top bar (which starts 22px
+     lower to make room) and above the sheet. -->
 <a
   class="brand"
   href="https://fabriziomarras.com"
@@ -14,8 +14,8 @@
   .brand {
     position: fixed;
     z-index: 25;
-    top: calc(var(--safe-top) + 57px);
-    right: 10px;
+    top: calc(var(--safe-top) + 3px);
+    right: 4px;
     padding: 1px 7px;
     border-radius: 999px;
     background: color-mix(in srgb, var(--surface) 88%, transparent);

@@ -88,7 +88,8 @@
     left: 0;
     right: 0;
     z-index: 15;
-    padding: calc(var(--safe-top) + 8px) 10px 0;
+    /* 22px: room for the brand badge in the top-right corner (Brand.svelte). */
+    padding: calc(var(--safe-top) + 22px) 10px 0;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -105,10 +106,6 @@
     align-items: center;
     pointer-events: auto;
     min-width: 0;
-  }
-  /* Leaves a slot under the round buttons for the brand badge (Brand.svelte). */
-  .row + .row {
-    margin-top: 14px;
   }
   .search {
     flex: 1;
