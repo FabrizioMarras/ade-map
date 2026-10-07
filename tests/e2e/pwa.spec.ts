@@ -22,10 +22,16 @@ test('works offline after the first visit', async ({ page, context }) => {
 
   // Previously seen tiles render from the cache (the remote style, not the fallback).
   await expect(page.locator('.map')).not.toHaveAttribute('data-fallback', 'true');
-  const tilesLoaded = await page.evaluate(() =>
-    (window as unknown as { __adeMap: import('maplibre-gl').Map }).__adeMap.areTilesLoaded(),
-  );
-  expect(tilesLoaded).toBe(true);
+  // Tiles decode from the cache asynchronously; give a busy machine a moment.
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() =>
+          (window as unknown as { __adeMap: import('maplibre-gl').Map }).__adeMap.areTilesLoaded(),
+        ),
+      { timeout: 10_000 },
+    )
+    .toBe(true);
 
   // Lists work offline.
   await page.getByRole('searchbox').fill('paradiso');

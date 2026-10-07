@@ -271,3 +271,53 @@ test('a new search replaces the old one, even with a venue open', async ({ page 
   await page.getByRole('button', { name: 'Parties list' }).click();
   expect(await page.locator('.card').count()).toBeGreaterThan(3);
 });
+
+test('lasso and box work with a finger (touch), and the map pans again afterwards', async ({
+  page,
+  context,
+}) => {
+  await page.goto('./#d=23');
+  await ready(page);
+  const cdp = await context.newCDPSession(page);
+  const touch = (type: string, pts: [number, number][]) =>
+    cdp.send('Input.dispatchTouchEvent', {
+      type: type as 'touchStart',
+      touchPoints: pts.map(([x, y], id) => ({ x, y, id })),
+    });
+  const head = page.locator('.sheet-head h2');
+  const center = () =>
+    page.evaluate(() =>
+      (window as unknown as { __adeMap: import('maplibre-gl').Map }).__adeMap.getCenter().toArray(),
+    );
+  const [cx, cy, r] = [206, 420, 90];
+
+  for (const mode of ['Lasso', 'Box'] as const) {
+    await page.getByRole('button', { name: 'Select area' }).tap();
+    await page.locator('.hint button', { hasText: mode }).tap();
+    if (mode === 'Box') {
+      await touch('touchStart', [[cx - r, cy - r]]);
+      for (let i = 1; i <= 15; i++)
+        await touch('touchMove', [[cx - r + (2 * r * i) / 15, cy - r + (2 * r * i) / 15]]);
+    } else {
+      await touch('touchStart', [[cx + r, cy]]);
+      for (let a = 0.2; a <= 2 * Math.PI + 0.01; a += 0.2) {
+        await touch('touchMove', [[cx + r * Math.cos(a), cy + r * Math.sin(a)]]);
+      }
+    }
+    await touch('touchEnd', []);
+    await expect(head, mode).toContainText('in this area');
+    await page.getByRole('button', { name: 'Clear area' }).first().tap();
+    await expect(head).toHaveText(/Fri 23 · 335 parties/);
+    await page.waitForFunction(
+      () => !(window as unknown as { __adeMap: import('maplibre-gl').Map }).__adeMap.isMoving(),
+    );
+  }
+
+  // Out of draw mode a one-finger drag pans the map again.
+  const before = await center();
+  await touch('touchStart', [[200, 400]]);
+  for (let i = 1; i <= 10; i++) await touch('touchMove', [[200 + i * 10, 400 + i * 6]]);
+  await touch('touchEnd', []);
+  await page.waitForTimeout(800);
+  expect(await center()).not.toEqual(before);
+});

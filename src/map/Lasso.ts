@@ -51,6 +51,12 @@ export class Lasso {
     this.active = on;
     if (on) this.opts.map.dragPan.disable();
     else if (!this.oneShot) this.opts.map.dragPan.enable();
+    // With drag-pan off, MapLibre leaves `touch-action: pan-x pan-y` on the map, so the
+    // browser claims one-finger drags and cancels the pointer stream (nothing gets drawn
+    // on phones). Take the gesture back while drawing; pinch-zoom still goes to MapLibre.
+    const touchAction = on ? 'none' : '';
+    this.opts.map.getCanvasContainer().style.touchAction = touchAction;
+    this.opts.map.getCanvas().style.touchAction = touchAction;
     this.reset();
   }
 
