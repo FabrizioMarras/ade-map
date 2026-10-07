@@ -22,7 +22,7 @@
 
   const st = $derived(status(event, app.now));
   const dirs = $derived(directionsUrls(event.venue.lat, event.venue.lng, event.venue.name));
-  const description = $derived(cleanDescription(event.description));
+  const description = $derived(cleanDescription(app.descriptions?.get(event.id) ?? event.description ?? ''));
   const tagGroups = $derived(
     (['genre', 'type', 'time', 'venueType', 'area', 'other'] as FacetKey[])
       .map((k) => ({ key: k, label: FACET_LABELS[k], tags: event.facets[k] }))

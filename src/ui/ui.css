@@ -92,3 +92,9 @@
 .empty .btn {
   margin-top: 12px;
 }
+.sheet-head h2:focus {
+  outline: none;
+}
+.sheet-head h2:focus-visible {
+  outline: 3px solid var(--focus);
+}

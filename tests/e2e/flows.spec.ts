@@ -110,9 +110,25 @@ test('lasso around Rembrandtplein lists only those venues', async ({ page }) => 
   await jumpTo(page, REMBRANDTPLEIN, 16);
   const c = await pinPoint(page, REMBRANDTPLEIN);
 
+  const r = 80; // px, ≈ 90 m at zoom 16
+  // Venues inside the circle, measured before drawing (the map re-frames the area afterwards).
+  const insideNames = await page.evaluate(
+    ([cx, cy, rad]) => {
+      const m = (window as unknown as { __adeMap: import('maplibre-gl').Map }).__adeMap;
+      const src = m.getSource('venues') as unknown as { _data: { geojson?: GeoJSON.FeatureCollection } };
+      const fc = (src._data.geojson ?? src._data) as GeoJSON.FeatureCollection;
+      return fc.features
+        .filter((f) => {
+          const p = m.project((f.geometry as GeoJSON.Point).coordinates as [number, number]);
+          return Math.hypot(p.x - cx, p.y - cy) <= rad + 2;
+        })
+        .map((f) => f.properties!.name as string);
+    },
+    [c.x, c.y, r] as const,
+  );
+
   await page.getByRole('button', { name: 'Select area' }).click();
   await expect(page.getByText('Draw around the area you want')).toBeVisible();
-  const r = 80; // px, ≈ 90 m at zoom 16
   await page.mouse.move(c.x + r, c.y);
   await page.mouse.down();
   for (let a = 0; a <= 2 * Math.PI + 0.01; a += Math.PI / 16) {
@@ -122,25 +138,9 @@ test('lasso around Rembrandtplein lists only those venues', async ({ page }) => 
 
   const head = page.locator('.sheet-head h2');
   await expect(head).toContainText('in this area');
-  const venues = await page.locator('.card .venue').allTextContents();
+  const venues = [...new Set(await page.locator('.card .venue').allTextContents())];
   expect(venues.length).toBeGreaterThan(0);
-
-  // Every listed venue lies inside the drawn circle.
-  const inside = await page.evaluate(
-    ([cx, cy, rad, names]) => {
-      const m = (window as unknown as { __adeMap: import('maplibre-gl').Map }).__adeMap;
-      const src = m.getSource('venues') as unknown as { _data: { geojson?: GeoJSON.FeatureCollection } };
-      const fc = (src._data.geojson ?? src._data) as GeoJSON.FeatureCollection;
-      return (names as string[]).every((n) => {
-        const f = fc.features.find((g) => g.properties!.name === n);
-        if (!f) return false;
-        const p = m.project((f.geometry as GeoJSON.Point).coordinates as [number, number]);
-        return Math.hypot(p.x - (cx as number), p.y - (cy as number)) <= (rad as number) + 2;
-      });
-    },
-    [c.x, c.y, r, [...new Set(venues)]] as const,
-  );
-  expect(inside).toBe(true);
+  for (const v of venues) expect(insideNames).toContain(v);
 
   // Changing the day re-evaluates the same area.
   const friText = await head.textContent();
@@ -172,11 +172,11 @@ test('favourites: star, My list with clash note, survives reload', async ({ page
   await expect(page.locator('.card .note').first()).toContainText('Clashes with');
 
   await page.reload();
-  await expect(page.locator('.card')).toHaveCount(2);
   await expect(page.getByRole('button', { name: /My list/ })).toContainText('2');
+  await page.getByRole('button', { name: 'Expand panel' }).click();
+  await expect(page.locator('.card')).toHaveCount(2);
 
   // Un-star from the detail view.
-  await page.getByRole('button', { name: 'Expand panel' }).click();
   await page.locator('.card .main').first().click();
   await page.locator('.detail .star').click();
   await page.getByRole('button', { name: 'Back' }).click();

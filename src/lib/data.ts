@@ -3,7 +3,9 @@ import { buildSearchText } from './search';
 import { DAYS, HIDDEN_END_DURATION, dayKeyOf, parseWall } from './time';
 import type { AdeEvent, Dataset, RawData } from './types';
 
-export const DATA_URL = 'data/ade-2026.json';
+/** Programme without descriptions (fast first paint); descriptions follow in TEXT_URL. */
+export const DATA_URL = 'data/ade-2026.core.json';
+export const TEXT_URL = 'data/ade-2026.text.json';
 export const META_URL = 'data/ade-2026.meta.json';
 export const BASEMAP_URL = 'data/basemap.json';
 
@@ -23,6 +25,7 @@ export function indexData(raw: RawData): Dataset {
     const hour = new Date(startMs).getUTCHours();
     const ev: AdeEvent = {
       ...r,
+      description: r.description ?? '',
       day,
       startMs,
       endMs,
@@ -71,4 +74,12 @@ export async function fetchGenerated(url = META_URL): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+/** Event descriptions, keyed by event id. */
+export async function loadDescriptions(url = TEXT_URL): Promise<Map<number, string>> {
+  const res = await fetch(url, { cache: 'no-cache' });
+  if (!res.ok) throw new Error(`Could not load descriptions (${res.status})`);
+  const { descriptions } = (await res.json()) as { descriptions: Record<string, string> };
+  return new Map(Object.entries(descriptions).map(([id, d]) => [Number(id), d]));
 }

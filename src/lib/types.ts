@@ -25,7 +25,8 @@ export interface RawEvent {
   ticketUrl: string | null;
   ticketText: string | null;
   image: string;
-  description: string;
+  /** Absent in the core file; loaded separately (see loadDescriptions). */
+  description?: string;
 }
 
 export interface RawData {

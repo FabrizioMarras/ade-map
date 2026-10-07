@@ -1,6 +1,7 @@
 // Merge raw program + pages + venues → public/data/ade-2026.json and ade-2026.meta.json
 import { join } from 'node:path';
 import { RAW, ROOT, readJSON, writeJSON } from './lib.mjs';
+import { splitData } from './split-data.mjs';
 
 const OUT = join(ROOT, 'public/data/ade-2026.json');
 const META = join(ROOT, 'public/data/ade-2026.meta.json');
@@ -84,6 +85,8 @@ writeJSON(META, {
   byDay: Object.fromEntries(Object.entries(byDay).sort()),
   manualFixes: outVenues.filter((v) => v.geo.startsWith('manual')).map((v) => ({ id: v.id, name: v.name })),
 });
+
+splitData();
 
 // Validation report
 console.log(`\n${out.length} events at ${outVenues.length} venues → public/data/ade-2026.json`);

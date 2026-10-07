@@ -46,3 +46,26 @@ test('manifest is valid and linked', async ({ page, request }) => {
   expect(m.icons.some((i: { purpose: string }) => i.purpose === 'maskable')).toBe(true);
   for (const i of m.icons) expect((await request.get(i.src)).ok()).toBe(true);
 });
+
+test('shows an error with retry when the programme fails to load', async ({ page }) => {
+  let fail = true;
+  await page.route(/data\/ade-2026\.core\.json/, (route) => (fail ? route.abort() : route.continue()));
+  await page.goto('./#d=23');
+  await expect(page.getByRole('alert')).toContainText("couldn't be loaded");
+  fail = false;
+  await page.getByRole('button', { name: 'Try again' }).click();
+  await expect(page.locator('.sheet-head h2')).toHaveText(/Fri 23 · 335 parties/);
+  await expect(page.locator('.credits')).toContainText('Programme as of');
+});
+
+test('keyboard: open a party from the list and go back with Escape', async ({ page }) => {
+  await page.goto('./#d=23');
+  await ready(page);
+  await page.getByRole('button', { name: 'Expand panel' }).click();
+  await page.locator('.card .main').first().focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.detail')).toBeVisible();
+  await expect(page.locator('.sheet-head h2')).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.detail')).toHaveCount(0);
+});

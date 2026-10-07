@@ -16,11 +16,17 @@
     <meta name="apple-mobile-web-app-title" content="ADE Map" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Fonts load without blocking the first render; system fonts are the fallback. -->
     <link
-      rel="stylesheet"
+      rel="preload"
+      as="style"
       href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&display=swap"
+      onload="
+        this.onload = null;
+        this.rel = 'stylesheet';
+      "
     />
-    <link rel="preload" href="./data/ade-2026.json" as="fetch" crossorigin />
+    <link rel="preload" href="./data/ade-2026.core.json" as="fetch" crossorigin />
   </head>
   <body>
     <div id="app"></div>

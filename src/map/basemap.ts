@@ -138,6 +138,9 @@ export const REMOTE_STYLES = {
   dark: 'https://tiles.openfreemap.org/styles/dark',
 };
 
+const CITY_LABELS =
+  /^(label_(city|city_capital|town|village|other)|place_(city|city_large|town|village|other|suburb))$/;
+
 /** Fetch the remote style ourselves so a failure (offline, outage) falls back to the bundled basemap. */
 export async function loadStyle(
   theme: 'light' | 'dark',
@@ -148,7 +151,10 @@ export async function loadStyle(
     const res = await fetch(REMOTE_STYLES[theme], { signal: ctl.signal });
     clearTimeout(t);
     if (!res.ok) throw new Error(String(res.status));
-    return { style: (await res.json()) as StyleSpecification, remote: true };
+    const style = (await res.json()) as StyleSpecification;
+    // Drop city/town-level place labels: they sit under the pins; neighbourhood labels are ours.
+    style.layers = style.layers.filter((l) => !CITY_LABELS.test(l.id));
+    return { style, remote: true };
   } catch {
     return { style: await fallbackStyle(theme), remote: false };
   }

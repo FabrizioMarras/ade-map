@@ -17,10 +17,12 @@
     "data:pages": "node scripts/fetch-event-pages.mjs",
     "data:geocode": "node scripts/geocode.mjs",
     "data:build": "node scripts/build-data.mjs",
+    "data:split": "node scripts/split-data.mjs",
     "data:refresh": "npm run data:program && npm run data:pages && npm run data:geocode && npm run data:build",
     "icons": "node scripts/make-icons.mjs"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.63.0",
     "@sveltejs/vite-plugin-svelte": "^7.3.1",

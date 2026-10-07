@@ -47,8 +47,15 @@
     align-self: flex-start;
     margin: 6px 4px 0 0;
   }
-  .card.ended {
-    opacity: 0.55;
+  /* Ended: muted colours rather than opacity, so text keeps ≥ 4.5:1 contrast. */
+  .card.ended .title,
+  .card.ended .venue {
+    color: var(--muted);
+  }
+  .card.ended .tag {
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--muted);
   }
   .main {
     flex: 1;

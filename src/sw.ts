@@ -26,7 +26,12 @@ self.addEventListener('install', (event) => {
       await cache.addAll(__PRECACHE__);
       // Seed the data cache too so the very first offline launch works.
       const data = await caches.open(DATA);
-      for (const url of ['data/ade-2026.json', 'data/ade-2026.meta.json', 'data/basemap.json']) {
+      for (const url of [
+        'data/ade-2026.core.json',
+        'data/ade-2026.text.json',
+        'data/ade-2026.meta.json',
+        'data/basemap.json',
+      ]) {
         try {
           const res = await fetch(url, { cache: 'no-cache' });
           if (res.ok) await data.put(url, res);
