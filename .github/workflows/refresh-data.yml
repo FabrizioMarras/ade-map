@@ -1,0 +1,99 @@
+name: Refresh programme
+
+# Re-runs the data pipeline so new events, line-up changes and sold-out flags reach the
+# live app on their own: every 2 hours during ADE week, once a day otherwise.
+on:
+  schedule:
+    - cron: '17 */2 * * *' # :17 avoids the top-of-the-hour rush on GitHub's scheduler
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Publish even if the event count dropped by more than 20%'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency: { group: refresh-data, cancel-in-progress: false }
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    outputs:
+      published: ${{ steps.publish.outputs.published }}
+    steps:
+      - name: Decide whether this run is due
+        id: gate
+        run: |
+          day=$(TZ=Europe/Amsterdam date +%Y%m%d)
+          hour=$(date -u +%H)
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then due=true    # manual run
+          elif [ "$day" -gt 20261027 ]; then due=false                              # festival over
+          elif [ "$day" -ge 20261019 ]; then due=true                               # ADE week: every run
+          elif [ "$hour" = "06" ]; then due=true                                    # before: daily
+          else due=false; fi
+          echo "due=$due" >> "$GITHUB_OUTPUT"
+          echo "Amsterdam date $day, UTC hour $hour → due=$due"
+
+      - if: steps.gate.outputs.due == 'true'
+        uses: actions/checkout@v4
+      - if: steps.gate.outputs.due == 'true'
+        uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - if: steps.gate.outputs.due == 'true'
+        run: npm ci
+
+      - name: Start from the last published programme
+        if: steps.gate.outputs.due == 'true'
+        run: |
+          if git fetch --depth=1 origin data 2>/dev/null; then
+            git checkout FETCH_HEAD -- public/data
+          fi
+
+      - name: Restore the page cache
+        if: steps.gate.outputs.due == 'true'
+        uses: actions/cache@v4
+        with:
+          path: scripts/.cache
+          key: pipeline-${{ github.run_id }}
+          restore-keys: pipeline-
+
+      - name: Run the pipeline
+        if: steps.gate.outputs.due == 'true'
+        run: |
+          npm run data:program
+          npm run data:pages
+          npm run data:geocode
+          node scripts/build-data.mjs ${{ inputs.force && '--force' || '' }}
+
+      - name: Publish to the data branch
+        id: publish
+        if: steps.gate.outputs.due == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # One commit on an orphan branch, force-pushed: the data branch always holds just
+          # the current programme, and main's history stays free of data churn.
+          pub=$(mktemp -d)
+          mkdir -p "$pub/public"
+          cp -r public/data "$pub/public/"
+          cd "$pub"
+          git init -q -b data
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -qm "Programme refresh $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push -q --force "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" data
+          echo "published=true" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: refresh
+    if: needs.refresh.outputs.published == 'true'
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+      pages: write
+      id-token: write

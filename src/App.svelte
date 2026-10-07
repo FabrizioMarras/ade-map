@@ -1,9 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { fetchGenerated, loadData, loadDescriptions } from './lib/data';
+  import { fetchMeta, loadData, loadDescriptions, programmeChanged } from './lib/data';
   import { plural } from './lib/format';
   import { app } from './lib/store.svelte';
-  import { festivalDay } from './lib/time';
+  import { asOfLabel, festivalDay } from './lib/time';
   import MapView from './map/Map.svelte';
   import { activeFilterCount } from './lib/filter';
   import type { AdeEvent } from './lib/types';
@@ -59,12 +59,16 @@
     // Offer a reload when a newer programme is published while the app stays open.
     const check = async () => {
       if (!app.data || document.visibilityState !== 'visible') return;
-      const generated = await fetchGenerated();
-      if (generated && generated !== app.data.generated) {
+      const meta = await fetchMeta();
+      if (!meta) return;
+      if (programmeChanged(app.data, meta)) {
         toast = {
           text: 'Updated programme available',
           action: { label: 'Reload', run: () => location.reload() },
         };
+      } else if (meta.generated > (app.checkedAt ?? app.data.generated)) {
+        // Re-checked with no changes: the programme on screen is current as of now.
+        app.checkedAt = meta.generated;
       }
     };
     const timer = setInterval(check, 20 * 60_000);
@@ -127,15 +131,7 @@
       });
   }
 
-  const asOf = $derived(
-    app.data
-      ? new Date(app.data.generated).toLocaleDateString('en-GB', {
-          day: 'numeric',
-          month: 'short',
-          timeZone: 'Europe/Amsterdam',
-        })
-      : '',
-  );
+  const asOf = $derived(app.data ? asOfLabel(app.checkedAt ?? app.data.generated, app.now) : '');
 
   // When the sheet switches view, move focus to its heading if focus was inside the sheet
   // (e.g. after activating a card with the keyboard), so screen readers announce the change.
@@ -282,7 +278,7 @@
 
     {#if app.data && !app.selectedEvent && !app.selectedVenue && !app.chooser}
       <footer class="credits">
-        <p>Programme as of {asOf} · refreshed from the ADE site</p>
+        <p>Programme as of {asOf} · updated automatically from the ADE site</p>
         <p>
           Data © Amsterdam Dance Event (personal planning only) · Geocoding: PDOK Locatieserver · Map data ©
           <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>

@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Called by the scheduled programme refresh to test and redeploy with the new data.
+  workflow_call:
 
 permissions:
   contents: read
@@ -20,17 +22,33 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run check
+      # Tests run against the programme snapshot committed on main, so a changed live
+      # programme can never break them.
       - run: npm test
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+
+      - name: Use the latest published programme
+        run: |
+          if git fetch --depth=1 origin data 2>/dev/null; then
+            git checkout FETCH_HEAD -- public/data
+            node -e "
+              const m = require('./public/data/ade-2026.meta.json');
+              if (!(m.events > 0)) throw new Error('data branch looks empty');
+              console.log('Programme from the data branch:', m.events, 'events, generated', m.generated);
+            "
+          else
+            echo 'No data branch yet: deploying the snapshot from main.'
+          fi
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with: { path: dist }
 
   deploy:
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: test
     runs-on: ubuntu-latest
+    concurrency: { group: pages-deploy, cancel-in-progress: false }
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

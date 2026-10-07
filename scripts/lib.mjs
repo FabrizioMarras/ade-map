@@ -1,5 +1,5 @@
 // Shared helpers for the data pipeline (Node 20+, native fetch).
-import { mkdirSync, readFileSync, existsSync, writeFileSync, statSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -37,21 +37,73 @@ export async function get(url, { accept = '*/*', tries = 3 } = {}) {
   }
 }
 
+// When each cached file was fetched. Kept in an index rather than relying on file mtimes,
+// which don't survive every cache restore (e.g. GitHub Actions' cache).
+const FETCHED_INDEX = join(CACHE, 'fetched.json');
+let fetchedAt = null;
+function fetchedIndex() {
+  fetchedAt ??= readJSON(FETCHED_INDEX, {});
+  return fetchedAt;
+}
+export function saveFetchedIndex() {
+  if (fetchedAt) writeJSON(FETCHED_INDEX, fetchedAt, false);
+}
+
 /**
- * Fetch text through a file cache. The ADE site sends no ETag/Last-Modified, so a
- * cached copy is reused while younger than `maxAgeHours` (unless --refresh).
+ * Fetch text through a file cache. The ADE site sends no ETag/Last-Modified, so a cached
+ * copy is reused while younger than `maxAgeHours` (unless --refresh). If a fetch fails,
+ * the last good copy is used (`stale: true`) rather than losing the page.
  */
 export async function cachedText(url, file, maxAgeHours = 12) {
   const path = join(CACHE, file);
-  if (!REFRESH && existsSync(path) && (Date.now() - statSync(path).mtimeMs) / 3.6e6 < maxAgeHours) {
+  const index = fetchedIndex();
+  const have = existsSync(path);
+  const at = index[file] ?? (have ? statSync(path).mtimeMs : 0);
+  if (!REFRESH && have && (Date.now() - at) / 3.6e6 < maxAgeHours) {
     return { text: readFileSync(path, 'utf8'), cached: true };
   }
-  const res = await get(url);
-  if (!res.ok) return { text: null, status: res.status, cached: false };
-  const text = await res.text();
-  mkdirSync(dirname(path), { recursive: true });
-  writeFileSync(path, text);
-  return { text, cached: false };
+  let status;
+  try {
+    const res = await get(url);
+    status = res.status;
+    if (res.ok) {
+      const text = await res.text();
+      mkdirSync(dirname(path), { recursive: true });
+      writeFileSync(path, text);
+      index[file] = Date.now();
+      return { text, cached: false };
+    }
+  } catch (e) {
+    status = e.message;
+  }
+  if (have) return { text: readFileSync(path, 'utf8'), cached: true, stale: true, status };
+  return { text: null, status, cached: false };
+}
+
+/** Current Europe/Amsterdam wall-clock time, encoded as if UTC (same as the app's time.ts). */
+export function amsterdamNow(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Amsterdam',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(date);
+  const get = (t) => +(parts.find((p) => p.type === t)?.value ?? 0);
+  return Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'));
+}
+
+/** "2026-10-21 14:00:00.000000" → wall-clock ms */
+export function parseWall(s) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/.exec(s ?? '');
+  return m ? Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]) : NaN;
+}
+
+/** Append markdown to the GitHub Actions run summary (no-op locally). */
+export function summary(md) {
+  if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, md + '\n');
 }
 
 /** Run `fn` over `items` with at most `n` in flight. */

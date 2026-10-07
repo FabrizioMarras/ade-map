@@ -1,6 +1,7 @@
 // Merge raw program + pages + venues → public/data/ade-2026.json and ade-2026.meta.json
 import { join } from 'node:path';
-import { RAW, ROOT, readJSON, writeJSON } from './lib.mjs';
+import { createHash } from 'node:crypto';
+import { RAW, ROOT, args, readJSON, summary, writeJSON } from './lib.mjs';
 import { splitData } from './split-data.mjs';
 
 const OUT = join(ROOT, 'public/data/ade-2026.json');
@@ -64,45 +65,7 @@ for (const v of outVenues) {
   }
 }
 
-const generated = new Date().toISOString();
-writeJSON(
-  OUT,
-  {
-    generated,
-    source:
-      'amsterdam-dance-event.nl program API (festival events, type 8262,8263); geocoding PDOK Locatieserver; basemap © OpenStreetMap contributors (ODbL)',
-    venues: outVenues,
-    events: out,
-  },
-  false,
-);
-const byDay = {};
-for (const e of out) byDay[e.start.slice(0, 10)] = (byDay[e.start.slice(0, 10)] ?? 0) + 1;
-writeJSON(META, {
-  generated,
-  events: out.length,
-  venues: outVenues.length,
-  byDay: Object.fromEntries(Object.entries(byDay).sort()),
-  manualFixes: outVenues.filter((v) => v.geo.startsWith('manual')).map((v) => ({ id: v.id, name: v.name })),
-});
-
-splitData();
-
-// Validation report
-console.log(`\n${out.length} events at ${outVenues.length} venues → public/data/ade-2026.json`);
-console.log(
-  'Per day:',
-  Object.entries(byDay)
-    .sort()
-    .map(([d, n]) => `${d.slice(8)}: ${n}`)
-    .join(' · '),
-);
-for (const [k, list] of Object.entries(report)) {
-  console.log(`${k}: ${list.length}`);
-  for (const x of list.slice(0, 20)) console.log(`  - ${x}`);
-}
-
-// Diff against the previous file
+// Diff against the previously published programme.
 const prevById = new Map(previous.events.map((e) => [e.id, e]));
 const nextById = new Map(out.map((e) => [e.id, e]));
 const added = out.filter((e) => !prevById.has(e.id));
@@ -125,15 +88,102 @@ for (const e of out) {
   if (!p) continue;
   for (const f of fields) if (JSON.stringify(p[f]) !== JSON.stringify(e[f])) changed[f]++;
 }
-console.log(`\nDiff vs previous: +${added.length} added, -${removed.length} removed`);
-for (const e of added.slice(0, 15)) console.log(`  + ${e.id} ${e.start} ${e.title}`);
-for (const e of removed.slice(0, 15)) console.log(`  - ${e.id} ${e.start} ${e.title}`);
-console.log(
-  '  changed fields:',
+const newlySoldOut = out.filter((e) => e.soldOut && prevById.get(e.id) && !prevById.get(e.id).soldOut);
+const changedLineups = out.filter(
+  (e) => prevById.get(e.id) && JSON.stringify(prevById.get(e.id).lineup) !== JSON.stringify(e.lineup),
+);
+
+// Safety check: a sudden large drop usually means the ADE site changed or fetching half
+// failed. Refuse to publish; the previous programme stays live. Override with --force.
+const MIN_RATIO = 0.8;
+if (
+  !out.length ||
+  (previous.events.length && out.length < previous.events.length * MIN_RATIO && !args.has('--force'))
+) {
+  const msg = `Refusing to publish: ${out.length} events vs ${previous.events.length} before (minimum ${Math.round(MIN_RATIO * 100)}%). Re-run with --force if the drop is real.`;
+  console.error(msg);
+  summary(`### ❌ Programme not published\n\n${msg}\n`);
+  process.exit(1);
+}
+
+// Fingerprint of the programme itself, so the app can tell real changes from re-checks.
+const hash = createHash('sha256')
+  .update(JSON.stringify({ venues: outVenues, events: out }))
+  .digest('hex')
+  .slice(0, 16);
+const generated = new Date().toISOString();
+writeJSON(
+  OUT,
+  {
+    generated,
+    hash,
+    source:
+      'amsterdam-dance-event.nl program API (festival events, type 8262,8263); geocoding PDOK Locatieserver; basemap © OpenStreetMap contributors (ODbL)',
+    venues: outVenues,
+    events: out,
+  },
+  false,
+);
+const byDay = {};
+for (const e of out) byDay[e.start.slice(0, 10)] = (byDay[e.start.slice(0, 10)] ?? 0) + 1;
+writeJSON(META, {
+  generated,
+  hash,
+  events: out.length,
+  venues: outVenues.length,
+  byDay: Object.fromEntries(Object.entries(byDay).sort()),
+  manualFixes: outVenues.filter((v) => v.geo.startsWith('manual')).map((v) => ({ id: v.id, name: v.name })),
+});
+
+splitData();
+
+// Validation report
+const perDay = Object.entries(byDay)
+  .sort()
+  .map(([d, n]) => `${d.slice(8)}: ${n}`)
+  .join(' · ');
+const changedList =
   Object.entries(changed)
     .filter(([, n]) => n)
     .map(([f, n]) => `${f} ${n}`)
-    .join(', ') || 'none',
-);
-const newlySoldOut = out.filter((e) => e.soldOut && prevById.get(e.id) && !prevById.get(e.id).soldOut);
+    .join(', ') || 'none';
+const contentChanged = hash !== previous.hash;
+console.log(`\n${out.length} events at ${outVenues.length} venues → public/data/ade-2026.json`);
+console.log('Per day:', perDay);
+for (const [k, list] of Object.entries(report)) {
+  console.log(`${k}: ${list.length}`);
+  for (const x of list.slice(0, 20)) console.log(`  - ${x}`);
+}
+console.log(`\nDiff vs previous: +${added.length} added, -${removed.length} removed`);
+for (const e of added.slice(0, 15)) console.log(`  + ${e.id} ${e.start} ${e.title}`);
+for (const e of removed.slice(0, 15)) console.log(`  - ${e.id} ${e.start} ${e.title}`);
+console.log('  changed fields:', changedList);
 if (newlySoldOut.length) console.log(`  newly sold out: ${newlySoldOut.map((e) => e.title).join('; ')}`);
+console.log(contentChanged ? `Programme changed (hash ${hash}).` : 'Programme unchanged since the last run.');
+
+const list = (items, fmt) =>
+  items
+    .slice(0, 25)
+    .map((x) => `- ${fmt(x)}`)
+    .join('\n') + (items.length > 25 ? `\n- … and ${items.length - 25} more` : '');
+summary(
+  [
+    `### ${contentChanged ? '✅ Programme updated' : '✅ Programme checked — no changes'}`,
+    '',
+    `**${out.length} events** at **${outVenues.length} venues** · ${perDay}`,
+    '',
+    `Changes vs the last run: **+${added.length}** added, **−${removed.length}** removed, ${newlySoldOut.length} newly sold out, ${changedLineups.length} line-ups changed · fields: ${changedList}`,
+    added.length ? `\n**Added**\n${list(added, (e) => `${e.start} — ${e.title}`)}` : '',
+    removed.length ? `\n**Removed**\n${list(removed, (e) => `${e.start} — ${e.title}`)}` : '',
+    newlySoldOut.length
+      ? `\n**Newly sold out**\n${list(newlySoldOut, (e) => `${e.start} — ${e.title}`)}`
+      : '',
+    report.unlocated.length || report.noVenue.length || report.outsideBbox.length
+      ? `\n**Needs attention** (not on the map — add to \`scripts/manual-fixes.json\`)\n${list(
+          [...report.unlocated, ...report.noVenue, ...report.outsideBbox],
+          (x) => x,
+        )}`
+      : '',
+    '',
+  ].join('\n'),
+);

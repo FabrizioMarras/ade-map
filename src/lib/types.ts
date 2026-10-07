@@ -31,6 +31,8 @@ export interface RawEvent {
 
 export interface RawData {
   generated: string;
+  /** Fingerprint of the programme content; unchanged when a refresh found nothing new. */
+  hash?: string;
   source: string;
   venues: Venue[];
   events: RawEvent[];
@@ -62,6 +64,7 @@ export interface AdeEvent extends RawEvent {
 
 export interface Dataset {
   generated: string;
+  hash?: string;
   venues: Venue[];
   events: AdeEvent[];
   venuesById: Map<string, Venue>;

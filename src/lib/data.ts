@@ -50,6 +50,7 @@ export function indexData(raw: RawData): Dataset {
 
   return {
     generated: raw.generated,
+    hash: raw.hash,
     venues: raw.venues,
     events,
     venuesById,
@@ -65,17 +66,30 @@ export async function loadData(url = DATA_URL): Promise<Dataset> {
   return indexData((await res.json()) as RawData);
 }
 
-/** `generated` of the programme on the server, or null when offline. */
-export async function fetchGenerated(url = META_URL): Promise<string | null> {
+export interface Meta {
+  /** When the pipeline last checked the ADE site. */
+  generated: string;
+  /** Programme fingerprint; absent in older data files. */
+  hash?: string;
+}
+
+/** The server's latest programme metadata, or null when offline. */
+export async function fetchMeta(url = META_URL): Promise<Meta | null> {
   try {
     const res = await fetch(url, { cache: 'no-cache' });
     if (!res.ok) return null;
-    return ((await res.json()) as { generated?: string }).generated ?? null;
+    const m = (await res.json()) as Partial<Meta>;
+    return m.generated ? { generated: m.generated, hash: m.hash } : null;
   } catch {
     return null;
   }
 }
 
+/** True when the server's programme differs from the loaded one (not just re-checked). */
+export function programmeChanged(loaded: Pick<Dataset, 'generated' | 'hash'>, meta: Meta): boolean {
+  if (loaded.hash && meta.hash) return loaded.hash !== meta.hash;
+  return meta.generated !== loaded.generated;
+}
 /** Event descriptions, keyed by event id. */
 export async function loadDescriptions(url = TEXT_URL): Promise<Map<number, string>> {
   const res = await fetch(url, { cache: 'no-cache' });

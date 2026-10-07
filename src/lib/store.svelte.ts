@@ -26,6 +26,8 @@ function autoTheme(now: number): 'light' | 'dark' {
 class AppState {
   data = $state.raw<Dataset | null>(null);
   error = $state<string | null>(null);
+  /** Latest time the server re-checked the programme without changes (newer than data.generated). */
+  checkedAt = $state<string | null>(null);
   /** Descriptions arrive after the first paint; null until then. */
   descriptions = $state.raw<Map<number, string> | null>(null);
   now = $state(nowWall());

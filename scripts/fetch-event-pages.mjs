@@ -1,9 +1,31 @@
 // Event detail pages → scripts/raw/details.json (line-up, venue, address, tickets, tags, description, image)
 import { parse } from 'node-html-parser';
 import { join } from 'node:path';
-import { RAW, cachedText, isMain, pool, readJSON, writeJSON } from './lib.mjs';
+import {
+  RAW,
+  amsterdamNow,
+  cachedText,
+  isMain,
+  parseWall,
+  pool,
+  readJSON,
+  saveFetchedIndex,
+  writeJSON,
+} from './lib.mjs';
 
 const CONCURRENCY = 6;
+const HOUR = 3_600_000;
+
+/**
+ * How old a cached event page may be. Line-ups change most for parties that are about to
+ * happen, so those are re-read on every scheduled run; the rest roughly once a day.
+ */
+export function pageMaxAgeHours(event, now = amsterdamNow()) {
+  const start = parseWall(event.start_date_time?.date);
+  const end = parseWall(event.end_date_time?.date) || start;
+  if (end < now - 6 * HOUR) return 24 * 7; // over: no need to re-read
+  return start - now < 36 * HOUR ? 1.5 : 20;
+}
 
 const text = (el) =>
   (el?.text ?? '')
@@ -57,12 +79,16 @@ if (isMain(import.meta.url)) {
   if (!events) throw new Error('Run scripts/fetch-program.mjs first');
   let fetched = 0;
   const failures = [];
+  const stale = [];
+  const now = amsterdamNow();
   const rows = await pool(
     events,
     CONCURRENCY,
     async (e) => {
-      const { text: html, cached, status } = await cachedText(e.url, `pages/${e.id}.html`);
+      const r = await cachedText(e.url, `pages/${e.id}.html`, pageMaxAgeHours(e, now));
+      const { text: html, cached, status } = r;
       if (!cached) fetched++;
+      if (r.stale) stale.push({ id: e.id, url: e.url, status });
       if (!html) {
         failures.push({ id: e.id, url: e.url, status });
         return null;
@@ -71,6 +97,7 @@ if (isMain(import.meta.url)) {
     },
     'pages',
   );
+  saveFetchedIndex();
   const details = Object.fromEntries(rows.filter(Boolean));
   writeJSON(join(RAW, 'details.json'), details);
   console.log(
@@ -78,4 +105,7 @@ if (isMain(import.meta.url)) {
       (failures.length ? `, ${failures.length} failed` : ''),
   );
   for (const f of failures) console.log(`  ! ${f.status ?? 'error'} ${f.url}`);
+  if (stale.length)
+    console.log(`${stale.length} pages could not be refreshed; their last good copy was used`);
+  for (const f of stale.slice(0, 20)) console.log(`  ~ ${f.status ?? 'error'} ${f.url}`);
 }

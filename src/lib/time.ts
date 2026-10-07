@@ -121,3 +121,16 @@ export function shortRange(ev: { startMs: number; end: string; showEnd: boolean 
 export function overlaps(a: { startMs: number; endMs: number }, b: { startMs: number; endMs: number }) {
   return a.startMs < b.endMs && b.startMs < a.endMs;
 }
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** "14:30 today", "23:10 yesterday" or "Wed 21 Oct, 14:30" — Amsterdam time. */
+export function asOfLabel(iso: string, now = nowWall()): string {
+  const at = nowWall(new Date(iso));
+  if (!Number.isFinite(at)) return '';
+  const day = dayKeyOf(at);
+  if (day === dayKeyOf(now)) return `${hhmm(at)} today`;
+  if (day === dayKeyOf(now - 24 * HOUR)) return `${hhmm(at)} yesterday`;
+  const d = new Date(at);
+  return `${dayShort(at)} ${MONTHS[d.getUTCMonth()]}, ${hhmm(at)}`;
+}
