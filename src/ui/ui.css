@@ -1,0 +1,94 @@
+/* Shared sheet content styles. */
+.sheet-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px 6px 4px;
+  min-height: 48px;
+}
+.sheet-head h2 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 22px;
+  line-height: 1.1;
+  text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-left: 8px;
+}
+.sheet-head .sub {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 400;
+  text-transform: none;
+  color: var(--muted);
+}
+.icon-btn {
+  flex: none;
+  width: var(--tap);
+  height: var(--tap);
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+}
+.icon-btn:hover {
+  background: var(--surface-2);
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 16px;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--tap);
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-weight: 600;
+  font-size: 15px;
+  text-decoration: none;
+}
+.btn:hover {
+  background: var(--surface-2);
+}
+.btn.primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+.btn:disabled,
+.btn[aria-disabled='true'] {
+  background: var(--chip);
+  color: var(--muted);
+  border-color: var(--chip);
+  cursor: not-allowed;
+}
+.section-title {
+  margin: 0;
+  padding: 14px 16px 6px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.empty {
+  padding: 24px 16px;
+  color: var(--muted);
+  text-align: center;
+}
+.empty .btn {
+  margin-top: 12px;
+}

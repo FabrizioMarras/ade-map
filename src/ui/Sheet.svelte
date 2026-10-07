@@ -1,0 +1,173 @@
+<script lang="ts">
+  import type { Snippet } from 'svelte';
+  import type { SheetSnap } from '../lib/store.svelte';
+
+  interface Props {
+    snap: SheetSnap;
+    wide: boolean;
+    /** Height of the sheet that is visible over the map (0 on wide screens). */
+    visible?: number;
+    header: Snippet;
+    children: Snippet;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-useless-assignment -- bindable output
+  let { snap = $bindable(), wide, visible = $bindable(0), header, children }: Props = $props();
+
+  const HANDLE = 56;
+  let vh = $state(typeof window !== 'undefined' ? window.innerHeight : 800);
+  let dragY = $state<number | null>(null);
+  let body: HTMLDivElement | undefined = $state();
+  let start = { y: 0, offset: 0, t: 0, moved: false };
+  let justDragged = false;
+
+  function cycle() {
+    if (justDragged) return;
+    snap = snap === 'expanded' ? 'half' : snap === 'half' ? 'expanded' : 'half';
+  }
+
+  const sheetH = $derived(Math.round(vh * 0.92));
+  const offsets = $derived<Record<SheetSnap, number>>({
+    expanded: 0,
+    half: Math.max(0, sheetH - Math.round(vh * 0.45)),
+    collapsed: sheetH - HANDLE,
+  });
+  const offset = $derived(dragY ?? offsets[snap]);
+
+  $effect(() => {
+    visible = wide ? 0 : Math.min(sheetH - offsets[snap], Math.round(vh * 0.45));
+  });
+
+  function down(e: PointerEvent) {
+    if (wide || (e.target as HTMLElement).closest('button:not(.handle), a, input, select, textarea')) return;
+    start = { y: e.clientY, offset: offsets[snap], t: performance.now(), moved: false };
+    dragY = start.offset;
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  }
+
+  function move(e: PointerEvent) {
+    if (dragY === null) return;
+    const dy = e.clientY - start.y;
+    if (Math.abs(dy) > 4) start.moved = true;
+    dragY = Math.min(offsets.collapsed, Math.max(0, start.offset + dy));
+  }
+
+  function up(e: PointerEvent) {
+    if (dragY === null) return;
+    const y = dragY;
+    dragY = null;
+    // A tap (no movement) is handled by the handle button's click.
+    if (!start.moved) return;
+    justDragged = true;
+    setTimeout(() => (justDragged = false), 50);
+    const velocity = (e.clientY - start.y) / Math.max(1, performance.now() - start.t); // px/ms
+    const order: SheetSnap[] = ['expanded', 'half', 'collapsed'];
+    if (Math.abs(velocity) > 0.5) {
+      const i = order.indexOf(snap) + (velocity > 0 ? 1 : -1);
+      snap = order[Math.max(0, Math.min(2, i))];
+      return;
+    }
+    snap = order.reduce((best, s) => (Math.abs(offsets[s] - y) < Math.abs(offsets[best] - y) ? s : best));
+  }
+
+  export function scrollTop() {
+    body?.scrollTo({ top: 0 });
+  }
+</script>
+
+<svelte:window bind:innerHeight={vh} />
+
+<section
+  class="sheet"
+  class:wide
+  class:dragging={dragY !== null}
+  style:--sheet-h="{sheetH}px"
+  style:transform={wide ? undefined : `translateY(${offset}px)`}
+  aria-label="Parties"
+>
+  <div
+    class="grab"
+    role="presentation"
+    onpointerdown={down}
+    onpointermove={move}
+    onpointerup={up}
+    onpointercancel={up}
+  >
+    {#if !wide}
+      <button
+        class="handle"
+        aria-label={snap === 'expanded' ? 'Shrink panel' : 'Expand panel'}
+        onclick={cycle}
+      >
+        <span></span>
+      </button>
+    {/if}
+    {@render header()}
+  </div>
+  <div class="body" bind:this={body} inert={!wide && snap === 'collapsed'}>
+    {@render children()}
+  </div>
+</section>
+
+<style>
+  .sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: var(--sheet-h);
+    background: var(--surface);
+    border-radius: 18px 18px 0 0;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    z-index: 20;
+    transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+    will-change: transform;
+  }
+  .sheet.dragging {
+    transition: none;
+  }
+  .sheet.wide {
+    top: 0;
+    right: auto;
+    width: 400px;
+    height: 100%;
+    border-radius: 0;
+    transform: none;
+    border-right: 1px solid var(--line);
+  }
+  .grab {
+    flex: none;
+    touch-action: none;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--line);
+  }
+  .wide .grab {
+    padding-top: calc(var(--safe-top) + 8px);
+    touch-action: auto;
+  }
+  .handle {
+    display: block;
+    width: 100%;
+    height: 20px;
+    border: 0;
+    background: none;
+    padding: 8px 0 0;
+  }
+  .handle span {
+    display: block;
+    margin: 0 auto;
+    width: 40px;
+    height: 5px;
+    border-radius: 3px;
+    background: var(--line);
+  }
+  .body {
+    flex: 1;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: calc(var(--safe-bottom) + 16px);
+  }
+</style>

@@ -44,6 +44,8 @@
       attributionControl: { compact: true },
     });
     map = m;
+    // Handle for end-to-end tests (project venue coordinates to screen pixels).
+    (window as unknown as { __adeMap?: MlMap }).__adeMap = m;
     m.touchZoomRotate.disableRotation();
     m.keyboard.disableRotation();
     m.on('style.load', () => {
@@ -119,7 +121,7 @@
 
   // Push pin data whenever the result set or selection changes.
   $effect(() => {
-    const data = pinsGeoJSON(app.pins, coords, app.selectedVenueId);
+    const data = pinsGeoJSON(app.pins, coords, app.focusVenueId);
     if (!map || !styleReady) return;
     (map.getSource('venues') as GeoJSONSource | undefined)?.setData(data);
   });
