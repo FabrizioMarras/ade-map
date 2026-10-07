@@ -10,6 +10,13 @@
   const nFilters = $derived(activeFilterCount(app.filters));
   const festival = $derived(isFestivalTime(app.now));
   let input: HTMLInputElement | undefined = $state();
+  /** The query when the box gained focus, while the old search is still to be replaced. */
+  let focusValue: string | null = null;
+
+  /** Select the previous search so typing replaces it — but never text typed since the tap. */
+  function selectOld() {
+    if (input && focusValue && input.value === focusValue) input.setSelectionRange(0, input.value.length);
+  }
 
   function cycleTheme() {
     app.setTheme(app.theme === 'dark' ? 'light' : 'dark');
@@ -29,6 +36,22 @@
         enterkeyhint="search"
         bind:value={app.query}
         onkeydown={(e) => e.key === 'Enter' && input?.blur()}
+        onfocus={() => {
+          focusValue = input?.value ?? null;
+          // Next frame too: iOS ignores selection changes made inside the focus event.
+          selectOld();
+          requestAnimationFrame(selectOld);
+        }}
+        onclick={() => {
+          // The tap that focused the box moves the caret on release; select again.
+          selectOld();
+          focusValue = null;
+        }}
+        onblur={() => (focusValue = null)}
+        oninput={() => {
+          focusValue = null;
+          if (app.selectedEventId || app.selectedVenueId || app.chooser) app.close();
+        }}
       />
       {#if app.query}
         <button class="clear" aria-label="Clear search" onclick={() => ((app.query = ''), input?.focus())}>

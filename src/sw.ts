@@ -23,7 +23,9 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     (async () => {
       const cache = await caches.open(SHELL);
-      await cache.addAll(__PRECACHE__);
+      // `reload` bypasses the HTTP cache (GitHub Pages: max-age=600), so the precache never
+      // stores a stale index.html that points at assets from the previous deploy.
+      await cache.addAll(__PRECACHE__.map((url) => new Request(url, { cache: 'reload' })));
       // Seed the data cache too so the very first offline launch works.
       const data = await caches.open(DATA);
       for (const url of [
@@ -116,7 +118,13 @@ self.addEventListener('fetch', (event) => {
       return;
     }
     if (req.mode === 'navigate') {
-      event.respondWith(fetch(req).catch(async () => (await caches.match('index.html')) ?? Response.error()));
+      // Always revalidate the page (cheap 304 when unchanged): a stale index.html from the
+      // HTTP cache would reference assets that no longer exist after a deploy.
+      event.respondWith(
+        fetch(req, { cache: 'no-cache' }).catch(
+          async () => (await caches.match('index.html', { ignoreVary: true })) ?? Response.error(),
+        ),
+      );
       return;
     }
     event.respondWith(

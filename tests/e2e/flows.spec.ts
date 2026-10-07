@@ -29,8 +29,12 @@ test('open → tap Paradiso → party → tickets → back', async ({ page, cont
   const tickets = page.locator('.detail a.btn.primary');
   if (await tickets.count()) {
     await expect(tickets).toHaveAttribute('target', '_blank');
+    // Answer the external ticket page locally so a slow ticket site can't stall the test.
+    const href = (await tickets.getAttribute('href'))!;
+    await context.route(href, (r) => r.fulfill({ contentType: 'text/html', body: '<title>tickets</title>' }));
     const [popup] = await Promise.all([context.waitForEvent('page'), tickets.click()]);
-    expect(popup.url()).toMatch(/^https?:/);
+    await popup.waitForLoadState();
+    expect(popup.url()).toBe(href);
     await popup.close();
   }
 
@@ -241,4 +245,29 @@ test('search moves the map to the matching venues', async ({ page }) => {
     expect(v.y, v.name).toBeGreaterThanOrEqual(0);
     expect(v.y, v.name).toBeLessThanOrEqual(top);
   }
+});
+
+test('a new search replaces the old one, even with a venue open', async ({ page }) => {
+  await page.goto('./#d=23');
+  await ready(page);
+  const box = page.getByRole('searchbox');
+  const head = page.locator('.sheet-head h2');
+
+  await box.click();
+  await page.keyboard.type('Charlotte');
+  await expect(box).toHaveValue('Charlotte'); // no typed letter is swallowed by the selection
+  await expect(page.locator('.card .note').first()).toContainText('Charlotte');
+
+  // Open the matching venue.
+  await page.getByRole('button', { name: /Venues list/ }).click();
+  await page.locator('.venues button').first().click();
+  await expect(head).toContainText('Paradiso');
+
+  // Tapping the box selects the old text, so typing replaces it and closes the venue.
+  await box.click();
+  await page.keyboard.type('techno');
+  await expect(box).toHaveValue('techno');
+  await expect(head).toHaveText(/Fri 23 · \d+ parties/);
+  await page.getByRole('button', { name: 'Parties list' }).click();
+  expect(await page.locator('.card').count()).toBeGreaterThan(3);
 });

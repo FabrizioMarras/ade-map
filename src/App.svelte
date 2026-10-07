@@ -289,6 +289,10 @@
           contributors · Tiles:
           <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>
         </p>
+        <p class="copyright">
+          © {new Date().getFullYear()} FM Consulting ·
+          <a href="https://fabriziomarras.com" target="_blank" rel="noopener">fabriziomarras.com</a>
+        </p>
       </footer>
     {/if}
   </Sheet>
@@ -303,6 +307,11 @@
   }
   .credits p {
     margin: 0 0 6px;
+  }
+  .credits .copyright {
+    margin-top: 10px;
+    color: var(--fg);
+    font-weight: 600;
   }
   .seg {
     display: flex;

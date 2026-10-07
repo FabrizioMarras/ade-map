@@ -27,6 +27,47 @@
       "
     />
     <link rel="preload" href="./data/ade-2026.core.json" as="fetch" crossorigin />
+    <script>
+      // Safety net: if the app bundle fails to load (e.g. a stale page pointing at files from
+      // a previous deploy), drop the service worker and caches and reload once.
+      window.addEventListener(
+        'error',
+        function (e) {
+          var el = e.target;
+          if (!el || (el.tagName !== 'SCRIPT' && el.tagName !== 'LINK')) return;
+          var url = el.src || el.href || '';
+          if (url.indexOf('/assets/') < 0) return;
+          try {
+            if (sessionStorage.getItem('ade-recovered')) return;
+            sessionStorage.setItem('ade-recovered', '1');
+          } catch (_) {
+            return;
+          }
+          var regs = navigator.serviceWorker
+            ? navigator.serviceWorker.getRegistrations()
+            : Promise.resolve([]);
+          var keys = window.caches ? caches.keys() : Promise.resolve([]);
+          Promise.all([regs, keys])
+            .then(function (r) {
+              return Promise.all(
+                r[0]
+                  .map(function (x) {
+                    return x.unregister();
+                  })
+                  .concat(
+                    r[1].map(function (k) {
+                      return caches.delete(k);
+                    }),
+                  ),
+              );
+            })
+            .finally(function () {
+              location.reload();
+            });
+        },
+        true,
+      );
+    </script>
   </head>
   <body>
     <div id="app"></div>
