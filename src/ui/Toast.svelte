@@ -30,7 +30,7 @@
   .toast {
     position: fixed;
     left: 50%;
-    top: calc(var(--safe-top) + 112px);
+    top: calc(var(--safe-top) + 124px);
     transform: translateX(-50%);
     z-index: 30;
     display: flex;

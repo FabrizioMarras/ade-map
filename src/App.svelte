@@ -8,6 +8,7 @@
   import { activeFilterCount } from './lib/filter';
   import type { AdeEvent } from './lib/types';
   import EventDetail from './ui/EventDetail.svelte';
+  import Brand from './ui/Brand.svelte';
   import FilterSheet from './ui/FilterSheet.svelte';
   import MapControls from './ui/MapControls.svelte';
   import Toast from './ui/Toast.svelte';
@@ -37,7 +38,7 @@
   const venueCount = $derived(app.pins.filter((p) => p.matched > 0).length);
 
   const padding = $derived({
-    top: 120,
+    top: 134, // top bar incl. the brand slot
     bottom: app.wide ? 0 : sheetVisible,
     left: app.wide ? 400 : 0,
     right: 56, // the map control stack
@@ -193,6 +194,7 @@
 <div class="app">
   <MapView bind:this={mapView} onpick={(ids) => app.pick(ids)} {padding} />
   <TopBar onfilters={() => (filtersOpen = true)} />
+  <Brand />
   <FilterSheet bind:open={filtersOpen} />
   <MapControls
     bottom={app.wide ? 12 : sheetVisible}

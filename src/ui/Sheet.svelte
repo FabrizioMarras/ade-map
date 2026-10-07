@@ -24,7 +24,19 @@
     snap = snap === 'expanded' ? 'half' : snap === 'half' ? 'expanded' : 'half';
   }
 
-  const sheetH = $derived(Math.round(vh * 0.92));
+  /** Fully expanded, the sheet stops below the search row and the brand badge (TOP_RESERVE). */
+  const TOP_RESERVE = 78;
+  let safeTop = $state(0);
+  const sheetH = $derived(Math.round(vh - safeTop - TOP_RESERVE));
+
+  $effect(() => {
+    // env(safe-area-inset-top) can only be read through a styled element.
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;visibility:hidden;padding-top:env(safe-area-inset-top)';
+    document.body.appendChild(probe);
+    safeTop = parseFloat(getComputedStyle(probe).paddingTop) || 0;
+    probe.remove();
+  });
   const offsets = $derived<Record<SheetSnap, number>>({
     expanded: 0,
     half: Math.max(0, sheetH - Math.round(vh * 0.45)),

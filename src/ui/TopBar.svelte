@@ -106,6 +106,10 @@
     pointer-events: auto;
     min-width: 0;
   }
+  /* Leaves a slot under the round buttons for the brand badge (Brand.svelte). */
+  .row + .row {
+    margin-top: 14px;
+  }
   .search {
     flex: 1;
     min-width: 0;
