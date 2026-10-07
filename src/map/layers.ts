@@ -118,18 +118,6 @@ export function addAppLayers(map: MlMap, theme: 'light' | 'dark') {
 
   map.addSource('venues', { type: 'geojson', data: empty });
   map.addLayer({
-    id: 'pin-pulse',
-    type: 'circle',
-    source: 'venues',
-    filter: ['all', ['get', 'live'], ['!', ['get', 'dim']]],
-    paint: {
-      'circle-radius': radius(),
-      'circle-color': COLORS.live,
-      'circle-opacity': 0.35,
-      'circle-stroke-width': 0,
-    },
-  });
-  map.addLayer({
     id: 'pins',
     type: 'circle',
     source: 'venues',

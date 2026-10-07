@@ -60,6 +60,16 @@ class AppState {
     }),
   );
 
+  /** Results in list order: by start time. */
+  listEvents = $derived(
+    this.nowMode || this.day === 'all' || this.day === 'fav'
+      ? [...this.results].sort((a, b) => a.startMs - b.startMs)
+      : this.results,
+  );
+
+  /** Sheet content when nothing is selected. */
+  listMode = $state<'parties' | 'venues'>('parties');
+
   /** Pins only for venues in scope; in Now mode only venues with something on now/soon. */
   pinEvents = $derived(this.nowMode ? this.results : this.scopeEvents);
 

@@ -76,3 +76,29 @@ test('day switch updates counts; search finds line-up matches', async ({ page })
   await expect(page.locator('.card').first()).toBeVisible();
   await expect(page.locator('.card .note').first()).toContainText('Charlotte');
 });
+
+test('list mode: grouped by hour, tap flies to pin and opens detail', async ({ page }) => {
+  await page.goto('./#d=23');
+  await ready(page);
+  await page.getByRole('button', { name: 'Expand panel' }).click();
+  await expect(page.locator('.hour').first()).toHaveText(/^\d\d:00/);
+  await expect(page.locator('.hour.divider')).toContainText('After midnight');
+  // Every Friday party is listed once in the hour groups.
+  await expect(page.locator('.group:not(:has(.divider)) .card')).toHaveCount(335);
+
+  const card = page.locator('.card .main').nth(10);
+  const title = (await card.locator('.title').textContent())!.trim();
+  await card.click();
+  await expect(page.locator('.detail .title')).toHaveText(title);
+  await page.waitForFunction(
+    () => !(window as unknown as { __adeMap: import('maplibre-gl').Map }).__adeMap.isMoving(),
+  );
+  const zoom = await page.evaluate(() =>
+    (window as unknown as { __adeMap: import('maplibre-gl').Map }).__adeMap.getZoom(),
+  );
+  expect(zoom).toBeGreaterThanOrEqual(15);
+
+  await page.getByRole('button', { name: 'Back' }).click();
+  await page.getByRole('button', { name: /Venues list/ }).click();
+  await expect(page.locator('.venues li').first()).toBeVisible();
+});

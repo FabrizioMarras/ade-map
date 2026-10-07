@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Map as MlMap, setWorkerUrl, type GeoJSONSource } from 'maplibre-gl';
+  import { Map as MlMap, Marker, setWorkerUrl, type GeoJSONSource } from 'maplibre-gl';
   import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
   import 'maplibre-gl/dist/maplibre-gl.css';
   import { onDestroy, onMount } from 'svelte';
@@ -22,7 +22,6 @@
   let styleReady = $state(false);
   let styleTheme: 'light' | 'dark' | null = null;
   let usingFallback = $state(false);
-  let pulseFrame = 0;
 
   const coords = $derived(app.data ? spreadDuplicates(app.data.venues) : new Map<string, LngLat>());
   const reducedMotion =
@@ -78,33 +77,35 @@
       map.on('mouseenter', layer, () => (map!.getCanvas().style.cursor = 'pointer'));
       map.on('mouseleave', layer, () => (map!.getCanvas().style.cursor = ''));
     }
-    if (!reducedMotion) pulse();
   });
 
   onDestroy(() => {
-    cancelAnimationFrame(pulseFrame);
     map?.remove();
   });
 
-  let lastPulse = 0;
-  function pulse(ts = 0) {
-    pulseFrame = requestAnimationFrame(pulse);
-    if (ts - lastPulse < 50 || !app.pins.some((p) => p.live)) return;
-    lastPulse = ts;
-    const t = (ts % 1600) / 1600;
-    if (map && styleReady && map.getLayer('pin-pulse')) {
-      map.setPaintProperty('pin-pulse', 'circle-radius', [
-        'interpolate',
-        ['linear'],
-        ['zoom'],
-        11,
-        4 + 10 * t,
-        17,
-        9 + 18 * t,
-      ]);
-      map.setPaintProperty('pin-pulse', 'circle-opacity', 0.45 * (1 - t));
+  // Live venues pulse with CSS-animated markers: the animation runs on the compositor,
+  // so the map itself never has to repaint for it.
+  const pulseMarkers = new Map<string, Marker>();
+  $effect(() => {
+    const live = app.pins.filter((p) => p.live && p.matched > 0);
+    if (!map) return;
+    const keep = new Set(live.map((p) => p.venue.id));
+    for (const [id, mk] of pulseMarkers) {
+      if (!keep.has(id)) {
+        mk.remove();
+        pulseMarkers.delete(id);
+      }
     }
-  }
+    for (const p of live) {
+      if (pulseMarkers.has(p.venue.id)) continue;
+      // Marker positions its element with a transform, so animate an inner ring.
+      const el = document.createElement('div');
+      el.className = 'pulse';
+      el.appendChild(document.createElement('span'));
+      const c = coords.get(p.venue.id) ?? [p.venue.lng, p.venue.lat];
+      pulseMarkers.set(p.venue.id, new Marker({ element: el }).setLngLat(c).addTo(map));
+    }
+  });
 
   // Load or switch the basemap whenever the effective theme changes.
   $effect(() => {
@@ -177,6 +178,34 @@
   .map {
     position: absolute;
     inset: 0;
+  }
+  .map :global(.pulse) {
+    pointer-events: none;
+  }
+  .map :global(.pulse span) {
+    display: block;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 3px solid var(--live);
+    animation: pulse 1.6s ease-out infinite;
+  }
+  @keyframes pulse {
+    from {
+      transform: scale(0.4);
+      opacity: 0.9;
+    }
+    to {
+      transform: scale(1.4);
+      opacity: 0;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .map :global(.pulse span) {
+      animation: none;
+      transform: scale(0.85);
+      opacity: 0.7;
+    }
   }
   :global(.maplibregl-ctrl-attrib) {
     font-size: 11px;

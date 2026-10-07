@@ -9,7 +9,8 @@
   import type { AdeEvent } from './lib/types';
   import EventDetail from './ui/EventDetail.svelte';
   import FilterSheet from './ui/FilterSheet.svelte';
-  import ResultsList from './ui/ResultsList.svelte';
+  import PartyList from './ui/PartyList.svelte';
+  import VenueList from './ui/VenueList.svelte';
   import TopBar from './ui/TopBar.svelte';
   import Icon from './ui/Icon.svelte';
   import Sheet from './ui/Sheet.svelte';
@@ -22,6 +23,7 @@
   let filtersOpen = $state(false);
 
   const narrowed = $derived(!!app.query.trim() || app.nowMode || activeFilterCount(app.filters) > 0);
+  const venueCount = $derived(app.pins.filter((p) => p.matched > 0).length);
 
   const padding = $derived({
     top: 120,
@@ -114,6 +116,18 @@
           <h2 aria-live="polite">
             {dayLabel} · {plural(app.results.length, 'party', 'parties')}
           </h2>
+          <div class="seg" role="group" aria-label="List view">
+            <button
+              aria-pressed={app.listMode === 'parties'}
+              onclick={() => (app.listMode = 'parties')}
+              aria-label="Parties list"><Icon name="list" size={18} /></button
+            >
+            <button
+              aria-pressed={app.listMode === 'venues'}
+              onclick={() => (app.listMode = 'venues')}
+              aria-label="Venues list ({venueCount})"><Icon name="pin" size={18} /></button
+            >
+          </div>
         {/if}
       </div>
     {/snippet}
@@ -134,15 +148,35 @@
       />
     {:else if app.selectedVenue}
       <VenueView venue={app.selectedVenue} />
-    {:else if narrowed}
-      <ResultsList onopen={openFromList} />
+    {:else if app.listMode === 'venues'}
+      <VenueList />
     {:else}
-      <p class="empty">Tap a pin to see its parties.</p>
+      <PartyList onopen={openFromList} />
     {/if}
   </Sheet>
 </div>
 
 <style>
+  .seg {
+    display: flex;
+    flex: none;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 2px;
+  }
+  .seg button {
+    width: 44px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 999px;
+    background: none;
+  }
+  .seg button[aria-pressed='true'] {
+    background: var(--fg);
+    color: var(--surface);
+  }
   .app {
     position: fixed;
     inset: 0;

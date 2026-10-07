@@ -18,11 +18,9 @@
   let vh = $state(typeof window !== 'undefined' ? window.innerHeight : 800);
   let dragY = $state<number | null>(null);
   let body: HTMLDivElement | undefined = $state();
-  let start = { y: 0, offset: 0, t: 0, moved: false };
-  let justDragged = false;
+  let start = { y: 0, offset: 0, t: 0, moved: false, onHandle: false };
 
   function cycle() {
-    if (justDragged) return;
     snap = snap === 'expanded' ? 'half' : snap === 'half' ? 'expanded' : 'half';
   }
 
@@ -40,7 +38,8 @@
 
   function down(e: PointerEvent) {
     if (wide || (e.target as HTMLElement).closest('button:not(.handle), a, input, select, textarea')) return;
-    start = { y: e.clientY, offset: offsets[snap], t: performance.now(), moved: false };
+    const onHandle = !!(e.target as HTMLElement).closest('.handle');
+    start = { y: e.clientY, offset: offsets[snap], t: performance.now(), moved: false, onHandle };
     dragY = start.offset;
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   }
@@ -56,10 +55,11 @@
     if (dragY === null) return;
     const y = dragY;
     dragY = null;
-    // A tap (no movement) is handled by the handle button's click.
-    if (!start.moved) return;
-    justDragged = true;
-    setTimeout(() => (justDragged = false), 50);
+    // Pointer capture retargets the click, so a tap on the handle is handled here.
+    if (!start.moved) {
+      if (start.onHandle) cycle();
+      return;
+    }
     const velocity = (e.clientY - start.y) / Math.max(1, performance.now() - start.t); // px/ms
     const order: SheetSnap[] = ['expanded', 'half', 'collapsed'];
     if (Math.abs(velocity) > 0.5) {
@@ -97,7 +97,7 @@
       <button
         class="handle"
         aria-label={snap === 'expanded' ? 'Shrink panel' : 'Expand panel'}
-        onclick={cycle}
+        onclick={(e) => e.detail === 0 && cycle()}
       >
         <span></span>
       </button>
