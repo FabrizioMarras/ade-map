@@ -38,7 +38,7 @@
   }
 </script>
 
-{#if app.drawMode}
+{#if app.drawMode && !app.pulseOn}
   <div class="hint" role="status">
     <span>Draw around the area you want</span>
     <div class="seg" role="group" aria-label="Shape">
@@ -55,20 +55,34 @@
 <div class="stack" class:wide={app.wide} style:bottom="{bottom + 12}px">
   <button
     class="ctl"
-    class:on={!!app.drawMode}
-    aria-pressed={!!app.drawMode}
-    aria-label={app.drawMode ? 'Cancel area selection' : 'Select area'}
-    title="Select area (or shift + drag)"
-    onclick={toggleDraw}
+    class:on={app.pulseOn}
+    aria-pressed={app.pulseOn}
+    aria-label={app.pulseOn ? 'Exit Pulse' : 'Pulse: see the festival over time'}
+    title="Pulse"
+    onclick={() => (app.pulseOn ? app.exitPulse() : app.enterPulse())}
   >
-    <Icon name={app.drawMode ? 'close' : 'lasso'} />
+    <Icon name="pulse" />
   </button>
+  {#if !app.pulseOn}
+    <button
+      class="ctl"
+      class:on={!!app.drawMode}
+      aria-pressed={!!app.drawMode}
+      aria-label={app.drawMode ? 'Cancel area selection' : 'Select area'}
+      title="Select area (or shift + drag)"
+      onclick={toggleDraw}
+    >
+      <Icon name={app.drawMode ? 'close' : 'lasso'} />
+    </button>
+  {/if}
   <button class="ctl" aria-label="Locate me" aria-busy={locating} onclick={locate}>
     <Icon name="locate" />
   </button>
-  <button class="ctl" aria-label="Zoom to fit results" onclick={onfit}>
-    <Icon name="fit" />
-  </button>
+  {#if !app.pulseOn}
+    <button class="ctl" aria-label="Zoom to fit results" onclick={onfit}>
+      <Icon name="fit" />
+    </button>
+  {/if}
 </div>
 
 <style>

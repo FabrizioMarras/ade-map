@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Map as MlMap, Marker, setWorkerUrl, type GeoJSONSource } from 'maplibre-gl';
+  import { AttributionControl, Map as MlMap, Marker, setWorkerUrl, type GeoJSONSource } from 'maplibre-gl';
   import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
   import 'maplibre-gl/dist/maplibre-gl.css';
   import { onDestroy, onMount } from 'svelte';
@@ -7,16 +7,27 @@
   import { app } from '../lib/store.svelte';
   import { loadStyle } from './basemap';
   import { Lasso } from './Lasso';
-  import { COLORS, addAppLayers, pinsGeoJSON } from './layers';
+  import { computeState, pulseEvents } from '../lib/pulse';
+  import {
+    COLORS,
+    NORMAL_LAYERS,
+    PULSE_LAYERS,
+    addAppLayers,
+    addPulseLayers,
+    pinsGeoJSON,
+    pulseGeoJSON,
+  } from './layers';
 
   interface Props {
     /** Venues under a tap (one or several overlapping). */
     onpick: (venueIds: string[]) => void;
+    /** A lit venue was tapped in Pulse mode. */
+    onpulsepick: (venueId: string) => void;
     /** Padding that the sheet/panel covers, so fly-to centres in the visible part. */
     padding: { top: number; bottom: number; left: number; right: number };
   }
 
-  let { onpick, padding }: Props = $props();
+  let { onpick, onpulsepick, padding }: Props = $props();
 
   let container: HTMLDivElement;
   let overlay: HTMLCanvasElement;
@@ -44,8 +55,11 @@
       dragRotate: false,
       pitchWithRotate: false,
       boxZoom: false, // shift + drag selects an area instead
-      attributionControl: { compact: true },
+      attributionControl: false,
     });
+    // Bottom-left, kept above the sheet / Pulse deck (see --ctrl-bottom) so the map credits
+    // stay visible; the right side belongs to the control stack.
+    m.addControl(new AttributionControl({ compact: true }), 'bottom-left');
     map = m;
     // Handle for end-to-end tests (project venue coordinates to screen pixels).
     (window as unknown as { __adeMap?: MlMap }).__adeMap = m;
@@ -53,6 +67,8 @@
     m.keyboard.disableRotation();
     m.on('style.load', () => {
       addAppLayers(map!, styleTheme ?? 'light');
+      addPulseLayers(map!, app.pulseOn);
+      applied = null; // feature-state is lost with the old style
       styleReady = true;
     });
     lasso = new Lasso({
@@ -65,6 +81,7 @@
       if (app.drawMode) return;
       const r = 16;
       const { x, y } = e.point;
+      if (app.pulseOn) return pickPulse(x, y, r);
       const feats = map!.queryRenderedFeatures(
         [
           [x - r, y - r],
@@ -84,22 +101,23 @@
         .sort((a, b) => Number(a.dim) - Number(b.dim) || a.d - b.d);
       if (scored.length) onpick(scored.map((s) => s.id));
     });
-    for (const layer of ['pins']) {
+    for (const layer of ['pins', 'pulse-core']) {
       map.on('mouseenter', layer, () => (map!.getCanvas().style.cursor = 'pointer'));
       map.on('mouseleave', layer, () => (map!.getCanvas().style.cursor = ''));
     }
   });
 
   onDestroy(() => {
+    cancelAnimationFrame(pulseFrame);
     lasso?.destroy();
     map?.remove();
   });
 
   // Live venues pulse with CSS-animated markers: the animation runs on the compositor,
-  // so the map itself never has to repaint for it.
+  // so the map itself never has to repaint for it. (Not in Pulse mode, which has its own.)
   const pulseMarkers = new Map<string, Marker>();
   $effect(() => {
-    const live = app.pins.filter((p) => p.live && p.matched > 0);
+    const live = app.pulseOn ? [] : app.pins.filter((p) => p.live && p.matched > 0);
     if (!map) return;
     const keep = new Set(live.map((p) => p.venue.id));
     for (const [id, mk] of pulseMarkers) {
@@ -121,7 +139,7 @@
 
   // Load or switch the basemap whenever the effective theme changes.
   $effect(() => {
-    const theme = app.theme;
+    const theme = app.mapTheme;
     if (!map || theme === styleTheme) return;
     styleTheme = theme;
     loadStyle(theme).then(({ style, remote }) => {
@@ -135,6 +153,106 @@
   $effect(() => {
     lasso?.setActive(app.drawMode !== null, app.drawMode ?? 'lasso');
   });
+
+  // ---------------------------------------------------------------- Pulse mode
+  const pulseData = $derived(app.data ? pulseEvents(app.data.events, app.data.venues) : []);
+  /** Feature-state last applied per venue, to only send changes to MapLibre. */
+  let applied: { count: number; w: number; soon: number; flash: number }[] | null = null;
+  let pulseFrame = 0;
+
+  // Switch between the normal map and Pulse layers.
+  $effect(() => {
+    const on = app.pulseOn;
+    if (!map || !styleReady) return;
+    for (const id of PULSE_LAYERS)
+      if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
+    for (const id of NORMAL_LAYERS)
+      if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', on ? 'none' : 'visible');
+  });
+
+  // Venue points for Pulse (positions only; the state changes every frame).
+  $effect(() => {
+    const venues = app.data?.venues;
+    if (!map || !styleReady || !venues) return;
+    (map.getSource('pulse') as GeoJSONSource | undefined)?.setData(pulseGeoJSON(venues, coords));
+    applied = null;
+  });
+
+  // Recompute per-venue state when the Pulse clock moves; coalesced to one update per frame.
+  $effect(() => {
+    const t = app.pulseT;
+    const on = app.pulseOn;
+    void pulseData;
+    if (!map || !styleReady || !on) return;
+    cancelAnimationFrame(pulseFrame);
+    pulseFrame = requestAnimationFrame(() => applyPulse(t));
+  });
+
+  function applyPulse(t: number) {
+    const venues = app.data?.venues;
+    if (!map || !venues || !map.getSource('pulse')) return;
+    const st = computeState(pulseData, venues.length, t);
+    applied ??= venues.map(() => ({ count: -1, w: -1, soon: -1, flash: -1 }));
+    const labels: GeoJSON.Feature[] = [];
+    for (let i = 0; i < venues.length; i++) {
+      const next = {
+        count: st.count[i],
+        w: Math.round(st.weight[i] * 100) / 100,
+        soon: st.soon[i],
+        // No ripple animation for people who prefer reduced motion: static dots only.
+        flash: reducedMotion ? 0 : Math.round(st.flash[i] * 50) / 50,
+      };
+      const prev = applied[i];
+      if (
+        prev.count !== next.count ||
+        prev.w !== next.w ||
+        prev.soon !== next.soon ||
+        prev.flash !== next.flash
+      ) {
+        map.setFeatureState({ source: 'pulse', id: i }, next);
+        applied[i] = next;
+      }
+      if (st.count[i] >= 2) {
+        const v = venues[i];
+        labels.push({
+          type: 'Feature',
+          properties: { name: v.name, count: st.count[i] },
+          geometry: { type: 'Point', coordinates: coords.get(v.id) ?? [v.lng, v.lat] },
+        });
+      }
+    }
+    // The time the map shows (lets tests wait for the drawn state, not just the clock).
+    container.dataset.pulseT = String(Math.round(t));
+    const key = labels.map((f) => `${f.properties!.name}:${f.properties!.count}`).join('|');
+    if (key !== labelKey) {
+      labelKey = key;
+      (map.getSource('pulse-labels') as GeoJSONSource | undefined)?.setData({
+        type: 'FeatureCollection',
+        features: labels,
+      });
+    }
+  }
+  let labelKey = '';
+
+  /** Tap in Pulse mode: the nearest venue with a party running at the current time. */
+  function pickPulse(x: number, y: number, r: number) {
+    if (!map) return;
+    const feats = map.queryRenderedFeatures(
+      [
+        [x - r, y - r],
+        [x + r, y + r],
+      ],
+      { layers: ['pulse-core'] },
+    );
+    const lit = feats
+      .filter((f) => (f.state?.count ?? 0) > 0)
+      .map((f) => {
+        const p = map!.project((f.geometry as GeoJSON.Point).coordinates as LngLat);
+        return { id: String(f.properties.id), d: Math.hypot(p.x - x, p.y - y) };
+      })
+      .sort((a, b) => a.d - b.d);
+    if (lit.length) onpulsepick(lit[0].id);
+  }
 
   // Show the selected area (re-applied after a style switch).
   $effect(() => {
@@ -217,7 +335,13 @@
   }
 </script>
 
-<div class="map" bind:this={container} data-fallback={usingFallback || undefined}></div>
+<div
+  class="map"
+  bind:this={container}
+  data-fallback={usingFallback || undefined}
+  style:--ctrl-bottom="{padding.bottom}px"
+  style:--ctrl-left="{padding.left}px"
+></div>
 <canvas class="overlay" bind:this={overlay} aria-hidden="true"></canvas>
 
 <style>
@@ -260,6 +384,11 @@
       transform: scale(0.85);
       opacity: 0.7;
     }
+  }
+  .map :global(.maplibregl-ctrl-bottom-left) {
+    bottom: var(--ctrl-bottom, 0px);
+    left: var(--ctrl-left, 0px);
+    transition: bottom 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
   :global(.maplibregl-ctrl-attrib) {
     font-size: 11px;

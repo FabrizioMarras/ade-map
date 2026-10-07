@@ -23,62 +23,78 @@
   }
 </script>
 
-<header class="top" class:wide={app.wide}>
-  <div class="row">
-    <label class="search">
-      <Icon name="search" size={18} />
-      <span class="visually-hidden">Search parties, venues and artists</span>
-      <input
-        bind:this={input}
-        type="search"
-        placeholder="Party, venue or artist"
-        autocomplete="off"
-        enterkeyhint="search"
-        bind:value={app.query}
-        onkeydown={(e) => e.key === 'Enter' && input?.blur()}
-        onfocus={() => {
-          focusValue = input?.value ?? null;
-          // Next frame too: iOS ignores selection changes made inside the focus event.
-          selectOld();
-          requestAnimationFrame(selectOld);
-        }}
-        onclick={() => {
-          // The tap that focused the box moves the caret on release; select again.
-          selectOld();
-          focusValue = null;
-        }}
-        onblur={() => (focusValue = null)}
-        oninput={() => {
-          focusValue = null;
-          if (app.selectedEventId || app.selectedVenueId || app.chooser) app.close();
-        }}
-      />
-      {#if app.query}
-        <button class="clear" aria-label="Clear search" onclick={() => ((app.query = ''), input?.focus())}>
-          <Icon name="close" size={16} />
+<header class="top" class:wide={app.wide && !app.pulseOn}>
+  {#if app.pulseOn}
+    <!-- Pulse mode: search, filters and day chips make no sense here; explain the map instead. -->
+    <div class="pulse-card">
+      <h2>Festival pulse</h2>
+      <p>
+        Drag the timeline or press play. Every dot is a venue: it <b>lights up</b> when a party starts, grows
+        with the number of parties running, and <b>fades</b> when they end. Tap a lit venue to see what's on.
+      </p>
+      <div class="legend" aria-label="Legend">
+        <span><i class="dot-live"></i>live now</span>
+        <span><i class="dot-soon"></i>starting within the hour</span>
+        <span><i class="dot-idle"></i>quiet</span>
+      </div>
+    </div>
+  {:else}
+    <div class="row">
+      <label class="search">
+        <Icon name="search" size={18} />
+        <span class="visually-hidden">Search parties, venues and artists</span>
+        <input
+          bind:this={input}
+          type="search"
+          placeholder="Party, venue or artist"
+          autocomplete="off"
+          enterkeyhint="search"
+          bind:value={app.query}
+          onkeydown={(e) => e.key === 'Enter' && input?.blur()}
+          onfocus={() => {
+            focusValue = input?.value ?? null;
+            // Next frame too: iOS ignores selection changes made inside the focus event.
+            selectOld();
+            requestAnimationFrame(selectOld);
+          }}
+          onclick={() => {
+            // The tap that focused the box moves the caret on release; select again.
+            selectOld();
+            focusValue = null;
+          }}
+          onblur={() => (focusValue = null)}
+          oninput={() => {
+            focusValue = null;
+            if (app.selectedEventId || app.selectedVenueId || app.chooser) app.close();
+          }}
+        />
+        {#if app.query}
+          <button class="clear" aria-label="Clear search" onclick={() => ((app.query = ''), input?.focus())}>
+            <Icon name="close" size={16} />
+          </button>
+        {/if}
+      </label>
+      <button class="round" aria-label="Filters{nFilters ? ` (${nFilters} active)` : ''}" onclick={onfilters}>
+        <Icon name="filter" />
+        {#if nFilters}<span class="badge">{nFilters}</span>{/if}
+      </button>
+      <button
+        class="round"
+        aria-label={app.theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+        onclick={cycleTheme}
+      >
+        <Icon name={app.theme === 'dark' ? 'sun' : 'moon'} />
+      </button>
+    </div>
+    <div class="row">
+      {#if festival}
+        <button class="now" aria-pressed={app.nowMode} onclick={() => app.setNowMode(!app.nowMode)}>
+          <span class="dot"></span>Now
         </button>
       {/if}
-    </label>
-    <button class="round" aria-label="Filters{nFilters ? ` (${nFilters} active)` : ''}" onclick={onfilters}>
-      <Icon name="filter" />
-      {#if nFilters}<span class="badge">{nFilters}</span>{/if}
-    </button>
-    <button
-      class="round"
-      aria-label={app.theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-      onclick={cycleTheme}
-    >
-      <Icon name={app.theme === 'dark' ? 'sun' : 'moon'} />
-    </button>
-  </div>
-  <div class="row">
-    {#if festival}
-      <button class="now" aria-pressed={app.nowMode} onclick={() => app.setNowMode(!app.nowMode)}>
-        <span class="dot"></span>Now
-      </button>
-    {/if}
-    <DayChips />
-  </div>
+      <DayChips />
+    </div>
+  {/if}
 </header>
 
 <style>
@@ -106,6 +122,64 @@
     align-items: center;
     pointer-events: auto;
     min-width: 0;
+  }
+  .pulse-card {
+    pointer-events: auto;
+    max-width: 400px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: rgba(16, 16, 20, 0.88);
+    backdrop-filter: blur(8px);
+    border: 1px solid #2a2a31;
+    color: #f2f2ef;
+  }
+  .pulse-card h2 {
+    margin: 0 0 4px;
+    font: 700 22px/1 var(--font-display);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+  .pulse-card p {
+    margin: 0;
+    font-size: 13.5px;
+    color: #b4b4ad;
+  }
+  .pulse-card b {
+    color: #f2f2ef;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    margin-top: 8px;
+    font-size: 12.5px;
+    color: #b4b4ad;
+  }
+  .legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .legend i {
+    display: inline-block;
+    border-radius: 50%;
+  }
+  .dot-live {
+    width: 10px;
+    height: 10px;
+    background: #ffb000;
+    box-shadow: 0 0 8px #ffb000;
+  }
+  .dot-soon {
+    width: 9px;
+    height: 9px;
+    border: 2px solid #6ad1ff;
+    box-sizing: border-box;
+  }
+  .dot-idle {
+    width: 8px;
+    height: 8px;
+    background: #4a4a52;
   }
   .search {
     flex: 1;

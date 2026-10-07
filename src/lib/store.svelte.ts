@@ -2,6 +2,7 @@ import { applyQuery, emptyFilters, inArea, type Filters } from './filter';
 import type { LngLat } from './geo';
 import { formatHash, parseHash, type DayScope } from './hash';
 import { KEYS, readJSON, writeJSON } from './storage';
+import { clampT, defaultT } from './pulse';
 import { defaultDay, nowWall } from './time';
 import type { AdeEvent, Dataset, Venue } from './types';
 
@@ -43,6 +44,10 @@ class AppState {
   query = $state('');
   filters = $state<Filters>(emptyFilters());
   nowMode = $state(false);
+  /** Pulse mode: the festival-at-a-glance timeline. `pulseT` is in festival minutes. */
+  pulseOn = $state(false);
+  pulseT = $state(defaultT());
+
   /** Drawn selection polygon (closed ring, lng/lat). */
   area = $state.raw<LngLat[] | null>(null);
   drawMode = $state<'lasso' | 'box' | null>(null);
@@ -51,6 +56,8 @@ class AppState {
 
   themePref = $state<ThemePref>(readJSON<ThemePref>(KEYS.theme, 'auto'));
   theme = $derived<'light' | 'dark'>(this.themePref === 'auto' ? autoTheme(this.now) : this.themePref);
+  /** Map style follows the theme, except Pulse, which is a night map by design. */
+  mapTheme = $derived<'light' | 'dark'>(this.pulseOn ? 'dark' : this.theme);
 
   /** Events in the selected day scope, before filters. Now mode spans days. */
   scopeEvents = $derived.by<AdeEvent[]>(() => {
@@ -130,15 +137,18 @@ class AppState {
   private applyHash(hash: string) {
     const h = parseHash(hash);
     if (h.day) this.day = h.day;
+    this.pulseOn = h.pulse !== undefined;
+    if (h.pulse !== undefined) this.pulseT = clampT(h.pulse);
     this.selectedVenueId = h.venue ?? null;
     this.selectedEventId = h.event ?? null;
     this.chooser = null;
   }
 
-  private writeHash(push: boolean) {
+  writeHash(push: boolean) {
     const hash = formatHash({
       day: this.day,
       venue: this.selectedVenueId ?? undefined,
+      pulse: this.pulseOn ? this.pulseT : undefined,
       event: this.selectedEventId ?? undefined,
     });
     if (hash === location.hash) return;
@@ -193,6 +203,34 @@ class AppState {
     this.selectedEventId = null;
     this.selectedVenueId = null;
     this.writeHash(false);
+  }
+
+  /** Enter Pulse mode (adds a history entry, so Back returns to the normal map). */
+  enterPulse(t = defaultT(this.now)) {
+    if (this.pulseOn) return;
+    this.chooser = null;
+    this.selectedEventId = null;
+    this.selectedVenueId = null;
+    this.drawMode = null;
+    this.pulseOn = true;
+    this.pulseT = clampT(t);
+    this.writeHash(true);
+  }
+
+  exitPulse() {
+    if (!this.pulseOn) return;
+    // Pop our own history entry when there is one, so Back and the toggle behave the same.
+    if (history.state?.app && !this.selectedVenueId && !this.selectedEventId) return history.back();
+    this.pulseOn = false;
+    this.selectedEventId = null;
+    this.selectedVenueId = null;
+    this.writeHash(false);
+  }
+
+  /** Move the Pulse clock; the URL follows (without adding history entries). */
+  setPulseT(t: number, writeUrl = true) {
+    this.pulseT = clampT(t);
+    if (writeUrl) this.writeHash(false);
   }
 
   setNowMode(on: boolean) {

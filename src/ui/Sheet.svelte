@@ -8,13 +8,24 @@
     /** Height of the sheet that is visible over the map (0 on wide screens). */
     visible?: number;
     header: Snippet;
+    /** Optional strip between the handle and the header (visible when collapsed). */
+    top?: Snippet;
+    /** Height left visible when collapsed. */
+    peek?: number;
     children: Snippet;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-useless-assignment -- bindable output
-  let { snap = $bindable(), wide, visible = $bindable(0), header, children }: Props = $props();
+  let {
+    snap = $bindable(),
+    wide,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-useless-assignment -- bindable output
+    visible = $bindable(0),
+    header,
+    top,
+    peek = 56,
+    children,
+  }: Props = $props();
 
-  const HANDLE = 56;
   let vh = $state(typeof window !== 'undefined' ? window.innerHeight : 800);
   let dragY = $state<number | null>(null);
   let body: HTMLDivElement | undefined = $state();
@@ -40,7 +51,7 @@
   const offsets = $derived<Record<SheetSnap, number>>({
     expanded: 0,
     half: Math.max(0, sheetH - Math.round(vh * 0.45)),
-    collapsed: sheetH - HANDLE,
+    collapsed: sheetH - peek,
   });
   const offset = $derived(dragY ?? offsets[snap]);
   let grabH = $state(56);
@@ -118,6 +129,7 @@
         <span></span>
       </button>
     {/if}
+    {@render top?.()}
     {@render header()}
   </div>
   <div class="body" bind:this={body} style:max-height={bodyMax} inert={!wide && snap === 'collapsed'}>

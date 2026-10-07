@@ -2,6 +2,7 @@
   import { directionsUrls } from '../lib/geo';
   import { plural } from '../lib/format';
   import { app } from '../lib/store.svelte';
+  import { formatT, toMinutes } from '../lib/pulse';
   import { festivalDay } from '../lib/time';
   import type { Venue } from '../lib/types';
   import EventCard from './EventCard.svelte';
@@ -14,10 +15,16 @@
   const inScope = $derived(
     app.day === 'all' || app.day === 'fav' ? all : all.filter((e) => e.day === app.day),
   );
-  const shown = $derived(inScope.filter((e) => matched.has(e.id)));
-  const hidden = $derived(inScope.length - shown.length);
+  /** In Pulse mode: only the parties running at the Pulse clock time. */
+  const pulseLive = $derived(
+    app.pulseOn
+      ? all.filter((e) => toMinutes(e.startMs) <= app.pulseT && app.pulseT < toMinutes(e.endMs))
+      : [],
+  );
+  const shown = $derived(app.pulseOn ? pulseLive : inScope.filter((e) => matched.has(e.id)));
+  const hidden = $derived(app.pulseOn ? 0 : inScope.length - shown.length);
   const otherDays = $derived(
-    app.day === 'all' || app.day === 'fav' ? [] : all.filter((e) => e.day !== app.day),
+    app.pulseOn || app.day === 'all' || app.day === 'fav' ? [] : all.filter((e) => e.day !== app.day),
   );
   const dirs = $derived(directionsUrls(venue.lat, venue.lng, venue.name));
   const dayLabel = $derived(festivalDay(app.day)?.short ?? 'all days');
@@ -31,11 +38,21 @@
     <a class="btn" href={venue.url} target="_blank" rel="noopener"><Icon name="external" />ADE venue page</a>
   </div>
 
-  <h3 class="section-title">{plural(shown.length, 'party', 'parties')} · {dayLabel}</h3>
-  {#each shown as e (e.id)}
-    <EventCard event={e} showDay={app.day === 'all' || app.day === 'fav'} />
+  {#if app.pulseOn}
+    <h3 class="section-title">
+      {plural(shown.length, 'party', 'parties')} live · {formatT(Math.round(app.pulseT))}
+    </h3>
   {:else}
-    <p class="empty">No parties here on {dayLabel}{hidden ? ' that match your filters' : ''}.</p>
+    <h3 class="section-title">{plural(shown.length, 'party', 'parties')} · {dayLabel}</h3>
+  {/if}
+  {#each shown as e (e.id)}
+    <EventCard event={e} showDay={app.pulseOn || app.day === 'all' || app.day === 'fav'} />
+  {:else}
+    <p class="empty">
+      {#if app.pulseOn}Nothing running here at {formatT(Math.round(app.pulseT))}.{:else}No parties here on {dayLabel}{hidden
+          ? ' that match your filters'
+          : ''}.{/if}
+    </p>
   {/each}
   {#if hidden && shown.length}
     <p class="hint">{plural(hidden, 'more party', 'more parties')} hidden by filters or search.</p>

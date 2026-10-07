@@ -11,6 +11,9 @@
   import Brand from './ui/Brand.svelte';
   import FilterSheet from './ui/FilterSheet.svelte';
   import MapControls from './ui/MapControls.svelte';
+  import PulseDeck from './ui/PulseDeck.svelte';
+  import Sparkline from './ui/Sparkline.svelte';
+  import { histogram, pulseEvents } from './lib/pulse';
   import Toast from './ui/Toast.svelte';
   import PartyList from './ui/PartyList.svelte';
   import VenueList from './ui/VenueList.svelte';
@@ -37,10 +40,19 @@
   });
   const venueCount = $derived(app.pins.filter((p) => p.matched > 0).length);
 
+  // Pulse mode: the deck replaces the sheet, which only comes back for a tapped venue.
+  const pulseData = $derived(app.data ? pulseEvents(app.data.events, app.data.venues) : []);
+  const bins = $derived(histogram(pulseData));
+  let deckHeight = $state(0);
+  const sheetShown = $derived(!app.pulseOn || !!app.selectedVenue || !!app.selectedEvent);
+  const bottomCover = $derived(
+    app.pulseOn && !(sheetShown && !app.wide) ? deckHeight : app.wide ? 0 : sheetVisible,
+  );
+
   const padding = $derived({
     top: 134, // top bar incl. the brand slot
-    bottom: app.wide ? 0 : sheetVisible,
-    left: app.wide ? 400 : 0,
+    bottom: bottomCover,
+    left: app.wide && sheetShown ? 400 : 0, // the side panel (hidden in Pulse)
     right: 56, // the map control stack
   });
 
@@ -84,13 +96,14 @@
     document.documentElement.dataset.theme = app.theme;
   });
 
-  // Keep the focused venue in view whenever it changes.
+  // Keep the focused venue in view whenever it changes. Not in Pulse: the venue was tapped
+  // on screen, and leaving Pulse should find the map where it was.
   let lastFocus: string | null = null;
   $effect(() => {
     const id = app.focusVenueId;
     if (!app.data || !mapView || id === lastFocus) return;
     lastFocus = id;
-    if (id) mapView.flyToVenue(id);
+    if (id && !app.pulseOn) mapView.flyToVenue(id);
   });
 
   // Reveal the results when a search, filter or Now mode first narrows the list.
@@ -185,6 +198,7 @@
     if (e.key !== 'Escape') return;
     if (app.drawMode) app.drawMode = null;
     else if (app.selectedEventId || app.selectedVenueId || app.chooser) app.back();
+    else if (app.pulseOn) app.exitPulse();
     else if (app.area) app.clearArea();
   }
 </script>
@@ -192,12 +206,17 @@
 <svelte:window {onkeydown} />
 
 <div class="app">
-  <MapView bind:this={mapView} onpick={(ids) => app.pick(ids)} {padding} />
+  <MapView
+    bind:this={mapView}
+    onpick={(ids) => app.pick(ids)}
+    onpulsepick={(id) => app.openVenue(id)}
+    {padding}
+  />
   <TopBar onfilters={() => (filtersOpen = true)} />
   <Brand />
   <FilterSheet bind:open={filtersOpen} />
   <MapControls
-    bottom={app.wide ? 12 : sheetVisible}
+    bottom={app.wide && !app.pulseOn ? 12 : bottomCover}
     onlocate={(p) => mapView?.showMe(p)}
     onfit={fitResults}
     onmessage={(text) => (toast = { text })}
@@ -206,94 +225,112 @@
     <Toast text={toast.text} action={toast.action} onclose={() => (toast = null)} />
   {/if}
 
-  <Sheet bind:this={sheet} bind:snap={app.sheet} bind:visible={sheetVisible} wide={app.wide}>
-    {#snippet header()}
-      <div class="sheet-head">
-        {#if app.chooser}
-          <button class="icon-btn" aria-label="Back" onclick={() => app.back()}><Icon name="back" /></button>
-          <h2 tabindex="-1">Pick a venue<span class="sub">{app.chooser.length} venues here</span></h2>
-        {:else if app.selectedEvent}
-          <button class="icon-btn" aria-label="Back" onclick={() => app.back()}><Icon name="back" /></button>
-          <h2 tabindex="-1">{app.selectedEvent.venue.name}<span class="sub">Party details</span></h2>
-          <button class="icon-btn" aria-label="Close" onclick={() => app.close()}
-            ><Icon name="close" /></button
-          >
-        {:else if app.selectedVenue}
-          <button class="icon-btn" aria-label="Back" onclick={() => app.back()}><Icon name="back" /></button>
-          <h2 tabindex="-1">{app.selectedVenue.name}<span class="sub">Venue</span></h2>
-          <button class="icon-btn" aria-label="Close" onclick={() => app.close()}
-            ><Icon name="close" /></button
-          >
-        {:else if app.area}
-          <h2 tabindex="-1" aria-live="polite">
-            {plural(app.results.length, 'party', 'parties')} in this area<span class="sub">{dayLabel}</span>
-          </h2>
-          <button class="btn" onclick={() => app.clearArea()}>Clear area</button>
-        {:else}
-          <h2 tabindex="-1" aria-live="polite">
-            {dayLabel} · {plural(app.results.length, 'party', 'parties')}
-          </h2>
-          <div class="seg" role="group" aria-label="List view">
-            <button
-              aria-pressed={app.listMode === 'parties'}
-              onclick={() => (app.listMode = 'parties')}
-              aria-label="Parties list"><Icon name="list" size={18} /></button
-            >
-            <button
-              aria-pressed={app.listMode === 'venues'}
-              onclick={() => (app.listMode = 'venues')}
-              aria-label="Venues list ({venueCount})"><Icon name="pin" size={18} /></button
-            >
-          </div>
-        {/if}
-      </div>
-    {/snippet}
+  {#if app.pulseOn && app.data}
+    <PulseDeck events={pulseData} {bins} bind:height={deckHeight} />
+  {/if}
 
-    {#if app.error}
-      <div class="empty" role="alert">
-        <p><strong>The programme couldn't be loaded.</strong></p>
-        <p>{navigator.onLine ? app.error : 'You appear to be offline.'}</p>
-        <button class="btn primary" onclick={load}>Try again</button>
-      </div>
-    {:else if !app.data}
-      <p class="empty">Loading the programme…</p>
-    {:else if app.chooser}
-      <VenueChooser ids={app.chooser} />
-    {:else if app.selectedEvent}
-      <EventDetail
-        event={app.selectedEvent}
-        onvenue={(id) => {
-          mapView?.flyToVenue(id);
-          if (!app.wide) app.sheet = 'half';
-        }}
-      />
-    {:else if app.selectedVenue}
-      <VenueView venue={app.selectedVenue} />
-    {:else if !listVisible}
-      <!-- The list is only built once the sheet opens: rendering 300+ cards up front
+  {#if sheetShown}
+    <Sheet
+      bind:this={sheet}
+      bind:snap={app.sheet}
+      bind:visible={sheetVisible}
+      wide={app.wide}
+      peek={app.pulseOn ? 56 : 82}
+    >
+      {#snippet top()}
+        {#if !app.pulseOn && app.data}<Sparkline {bins} />{/if}
+      {/snippet}
+      {#snippet header()}
+        <div class="sheet-head">
+          {#if app.chooser}
+            <button class="icon-btn" aria-label="Back" onclick={() => app.back()}><Icon name="back" /></button
+            >
+            <h2 tabindex="-1">Pick a venue<span class="sub">{app.chooser.length} venues here</span></h2>
+          {:else if app.selectedEvent}
+            <button class="icon-btn" aria-label="Back" onclick={() => app.back()}><Icon name="back" /></button
+            >
+            <h2 tabindex="-1">{app.selectedEvent.venue.name}<span class="sub">Party details</span></h2>
+            <button class="icon-btn" aria-label="Close" onclick={() => app.close()}
+              ><Icon name="close" /></button
+            >
+          {:else if app.selectedVenue}
+            <button class="icon-btn" aria-label="Back" onclick={() => app.back()}><Icon name="back" /></button
+            >
+            <h2 tabindex="-1">{app.selectedVenue.name}<span class="sub">Venue</span></h2>
+            <button class="icon-btn" aria-label="Close" onclick={() => app.close()}
+              ><Icon name="close" /></button
+            >
+          {:else if app.area}
+            <h2 tabindex="-1" aria-live="polite">
+              {plural(app.results.length, 'party', 'parties')} in this area<span class="sub">{dayLabel}</span>
+            </h2>
+            <button class="btn" onclick={() => app.clearArea()}>Clear area</button>
+          {:else}
+            <h2 tabindex="-1" aria-live="polite">
+              {dayLabel} · {plural(app.results.length, 'party', 'parties')}
+            </h2>
+            <div class="seg" role="group" aria-label="List view">
+              <button
+                aria-pressed={app.listMode === 'parties'}
+                onclick={() => (app.listMode = 'parties')}
+                aria-label="Parties list"><Icon name="list" size={18} /></button
+              >
+              <button
+                aria-pressed={app.listMode === 'venues'}
+                onclick={() => (app.listMode = 'venues')}
+                aria-label="Venues list ({venueCount})"><Icon name="pin" size={18} /></button
+              >
+            </div>
+          {/if}
+        </div>
+      {/snippet}
+
+      {#if app.error}
+        <div class="empty" role="alert">
+          <p><strong>The programme couldn't be loaded.</strong></p>
+          <p>{navigator.onLine ? app.error : 'You appear to be offline.'}</p>
+          <button class="btn primary" onclick={load}>Try again</button>
+        </div>
+      {:else if !app.data}
+        <p class="empty">Loading the programme…</p>
+      {:else if app.chooser}
+        <VenueChooser ids={app.chooser} />
+      {:else if app.selectedEvent}
+        <EventDetail
+          event={app.selectedEvent}
+          onvenue={(id) => {
+            mapView?.flyToVenue(id);
+            if (!app.wide) app.sheet = 'half';
+          }}
+        />
+      {:else if app.selectedVenue}
+        <VenueView venue={app.selectedVenue} />
+      {:else if !listVisible}
+        <!-- The list is only built once the sheet opens: rendering 300+ cards up front
            costs ~1 s of main thread on a mid-range phone. -->
-    {:else if app.listMode === 'venues'}
-      <VenueList />
-    {:else}
-      <PartyList onopen={openFromList} onmessage={(text) => (toast = { text })} />
-    {/if}
+      {:else if app.listMode === 'venues'}
+        <VenueList />
+      {:else}
+        <PartyList onopen={openFromList} onmessage={(text) => (toast = { text })} />
+      {/if}
 
-    {#if app.data && !app.selectedEvent && !app.selectedVenue && !app.chooser}
-      <footer class="credits">
-        <p>Programme as of {asOf} · updated automatically from the ADE site</p>
-        <p>
-          Data © Amsterdam Dance Event (personal planning only) · Geocoding: PDOK Locatieserver · Map data ©
-          <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>
-          contributors · Tiles:
-          <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>
-        </p>
-        <p class="copyright">
-          © {new Date().getFullYear()} FM Consulting ·
-          <a href="https://fabriziomarras.com" target="_blank" rel="noopener">fabriziomarras.com</a>
-        </p>
-      </footer>
-    {/if}
-  </Sheet>
+      {#if app.data && !app.selectedEvent && !app.selectedVenue && !app.chooser}
+        <footer class="credits">
+          <p>Programme as of {asOf} · updated automatically from the ADE site</p>
+          <p>
+            Data © Amsterdam Dance Event (personal planning only) · Geocoding: PDOK Locatieserver · Map data ©
+            <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>
+            contributors · Tiles:
+            <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>
+          </p>
+          <p class="copyright">
+            © {new Date().getFullYear()} FM Consulting ·
+            <a href="https://fabriziomarras.com" target="_blank" rel="noopener">fabriziomarras.com</a>
+          </p>
+        </footer>
+      {/if}
+    </Sheet>
+  {/if}
 </div>
 
 <style>

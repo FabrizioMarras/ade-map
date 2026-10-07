@@ -223,3 +223,140 @@ export function addAppLayers(map: MlMap, theme: 'light' | 'dark') {
     },
   });
 }
+
+// ---------------------------------------------------------------------------------------
+// Pulse mode (ported from prototypes/city-pulse-prototype.html). One point per venue; the
+// per-frame state lives in feature-state: count (parties live), w (fade-weighted live
+// amount), soon (0/1), flash (ripple 1 → 0).
+
+export const PULSE_LAYERS = [
+  'pulse-idle',
+  'pulse-soon',
+  'pulse-glow',
+  'pulse-core',
+  'pulse-ripple',
+  'pulse-labels',
+];
+/** Normal-map layers hidden while Pulse is on. */
+export const NORMAL_LAYERS = ['pins', 'pin-count', 'pin-labels', 'area-fill', 'area-line'];
+
+const P = {
+  idle: '#4a4a52',
+  soon: '#6ad1ff',
+  glow: '#ffb000',
+  core: '#ffd400',
+  label: '#f2f2ef',
+};
+
+const state = (k: string): ExpressionSpecification => ['coalesce', ['feature-state', k], 0];
+const isLive: ExpressionSpecification = ['>', state('count'), 0];
+/** Core radius in px at zoom 12.6: 2.5 + 3·sqrt(w), as in the prototype. */
+const coreR: ExpressionSpecification = ['+', 2.5, ['*', 3, ['sqrt', state('w')]]];
+
+/** Radius scaled with zoom like the prototype: ×2^(0.6·(zoom − 12.6)). */
+function zoomed(r: ExpressionSpecification | number): ExpressionSpecification {
+  const at = (z: number): ExpressionSpecification => ['*', Math.pow(2, 0.6 * (z - 12.6)), r];
+  return ['interpolate', ['exponential', Math.pow(2, 0.6)], ['zoom'], 11, at(11), 18, at(18)];
+}
+
+export function pulseGeoJSON(
+  venues: { id: string; name: string }[],
+  coords: Map<string, [number, number]>,
+): GeoJSON.FeatureCollection {
+  return {
+    type: 'FeatureCollection',
+    features: venues.map((v, i) => ({
+      type: 'Feature',
+      id: i,
+      properties: { i, id: v.id, name: v.name },
+      geometry: { type: 'Point', coordinates: coords.get(v.id) ?? [0, 0] },
+    })),
+  };
+}
+
+export function addPulseLayers(map: MlMap, visible: boolean) {
+  const empty: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
+  const visibility = visible ? 'visible' : 'none';
+  map.addSource('pulse', { type: 'geojson', data: empty });
+  map.addSource('pulse-labels', { type: 'geojson', data: empty });
+
+  map.addLayer({
+    id: 'pulse-idle',
+    type: 'circle',
+    source: 'pulse',
+    layout: { visibility },
+    paint: {
+      'circle-radius': zoomed(1.8),
+      'circle-color': P.idle,
+      'circle-opacity': ['case', ['any', isLive, ['>', state('soon'), 0]], 0, 1],
+    },
+  });
+  map.addLayer({
+    id: 'pulse-soon',
+    type: 'circle',
+    source: 'pulse',
+    layout: { visibility },
+    paint: {
+      'circle-radius': zoomed(4),
+      'circle-opacity': 0,
+      'circle-stroke-color': P.soon,
+      'circle-stroke-width': 1.5,
+      'circle-stroke-opacity': ['case', ['all', ['!', isLive], ['>', state('soon'), 0]], 0.9, 0],
+    },
+  });
+  map.addLayer({
+    id: 'pulse-glow',
+    type: 'circle',
+    source: 'pulse',
+    layout: { visibility },
+    paint: {
+      'circle-radius': zoomed(['*', 2.6, coreR]),
+      'circle-color': P.glow,
+      'circle-blur': 1,
+      'circle-opacity': ['case', isLive, ['min', 0.8, ['+', 0.3, ['*', 0.12, state('w')]]], 0],
+    },
+  });
+  map.addLayer({
+    id: 'pulse-core',
+    type: 'circle',
+    source: 'pulse',
+    layout: { visibility },
+    paint: {
+      'circle-radius': zoomed(coreR),
+      'circle-color': P.core,
+      'circle-opacity': ['case', isLive, 1, 0],
+    },
+  });
+  map.addLayer({
+    id: 'pulse-ripple',
+    type: 'circle',
+    source: 'pulse',
+    layout: { visibility },
+    paint: {
+      // Expands from the core by up to 18 px (at zoom 12.6) as the flash decays.
+      'circle-radius': zoomed(['+', coreR, ['*', 18, ['-', 1, state('flash')]]]),
+      'circle-opacity': 0,
+      'circle-stroke-color': '#ffffff',
+      'circle-stroke-width': 2,
+      'circle-stroke-opacity': ['case', isLive, ['*', 0.9, state('flash')], 0],
+    },
+  });
+  map.addLayer({
+    id: 'pulse-labels',
+    type: 'symbol',
+    source: 'pulse-labels',
+    minzoom: 13.2,
+    layout: {
+      visibility,
+      'text-field': ['upcase', ['get', 'name']],
+      'text-font': FONT_BOLD,
+      'text-size': 11,
+      'text-anchor': 'left',
+      'text-offset': [1, 0],
+      'text-max-width': 14,
+      'text-optional': true,
+      'symbol-sort-key': ['-', ['get', 'count']],
+    },
+    paint: { 'text-color': P.label, 'text-halo-color': '#000000', 'text-halo-width': 1.2 },
+  });
+}
