@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { loadData } from './lib/data';
+  import { fetchGenerated, loadData } from './lib/data';
   import { plural } from './lib/format';
   import { app } from './lib/store.svelte';
   import { festivalDay } from './lib/time';
@@ -47,12 +47,28 @@
           : (festivalDay(app.day)?.short ?? ''),
   );
 
-  onMount(async () => {
-    try {
-      app.data = await loadData();
-    } catch (e) {
-      app.error = e instanceof Error ? e.message : String(e);
-    }
+  onMount(() => {
+    loadData()
+      .then((d) => (app.data = d))
+      .catch((e) => (app.error = e instanceof Error ? e.message : String(e)));
+
+    // Offer a reload when a newer programme is published while the app stays open.
+    const check = async () => {
+      if (!app.data || document.visibilityState !== 'visible') return;
+      const generated = await fetchGenerated();
+      if (generated && generated !== app.data.generated) {
+        toast = {
+          text: 'Updated programme available',
+          action: { label: 'Reload', run: () => location.reload() },
+        };
+      }
+    };
+    const timer = setInterval(check, 20 * 60_000);
+    document.addEventListener('visibilitychange', check);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', check);
+    };
   });
 
   $effect(() => {

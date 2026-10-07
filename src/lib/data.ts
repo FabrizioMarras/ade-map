@@ -61,3 +61,14 @@ export async function loadData(url = DATA_URL): Promise<Dataset> {
   if (!res.ok) throw new Error(`Could not load the programme (${res.status})`);
   return indexData((await res.json()) as RawData);
 }
+
+/** `generated` of the programme on the server, or null when offline. */
+export async function fetchGenerated(url = META_URL): Promise<string | null> {
+  try {
+    const res = await fetch(url, { cache: 'no-cache' });
+    if (!res.ok) return null;
+    return ((await res.json()) as { generated?: string }).generated ?? null;
+  } catch {
+    return null;
+  }
+}

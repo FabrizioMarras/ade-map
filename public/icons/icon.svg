@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#ffd400"/>
+  <g transform="translate(24 24) scale(0.90625)">
+    <path d="M256 70c-82 0-148 64-148 146 0 104 148 226 148 226s148-122 148-226c0-82-66-146-148-146z" fill="#000"/>
+    <text x="256" y="262" text-anchor="middle" font-family="Arial Narrow, Arial, Helvetica, sans-serif"
+      font-weight="900" font-size="112" letter-spacing="-4" fill="#ffd400">ADE</text>
+  </g>
+</svg>
