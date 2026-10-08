@@ -120,9 +120,14 @@ self.addEventListener('fetch', (event) => {
     if (req.mode === 'navigate') {
       // Always revalidate the page (cheap 304 when unchanged): a stale index.html from the
       // HTTP cache would reference assets that no longer exist after a deploy.
+      // Offline: the page's own precached HTML (help/, insights/…), else the map.
+      const page = path === '' || path.endsWith('/') ? path + 'index.html' : path;
       event.respondWith(
         fetch(req, { cache: 'no-cache' }).catch(
-          async () => (await caches.match('index.html', { ignoreVary: true })) ?? Response.error(),
+          async () =>
+            (await caches.match(page, { ignoreSearch: true, ignoreVary: true })) ??
+            (await caches.match('index.html', { ignoreVary: true })) ??
+            Response.error(),
         ),
       );
       return;

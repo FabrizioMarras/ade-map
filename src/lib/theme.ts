@@ -17,3 +17,8 @@ export function storedThemePref(): ThemePref {
   const p = readJSON<ThemePref>(KEYS.theme, 'auto');
   return p === 'light' || p === 'dark' ? p : 'auto';
 }
+
+/** For the static pages (insights/, help/): the same theme the map would show right now. */
+export function applyStoredTheme() {
+  document.documentElement.dataset.theme = resolveTheme(storedThemePref());
+}

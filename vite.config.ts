@@ -16,6 +16,9 @@ function publicShellFiles(dir = 'public'): string[] {
   return out.filter((f) => !f.startsWith('data/') && !f.startsWith('.'));
 }
 
+/** Static pages besides the map, each its own Vite entry and precached for offline use. */
+const PAGES = { insights: 'insights/index.html', help: 'help/index.html' };
+
 /**
  * Builds src/sw.ts to /sw.js and injects the precache list (hashed assets + public
  * shell files) and a version derived from it.
@@ -30,6 +33,8 @@ function serviceWorker(): Plugin {
       const files = [
         './',
         'index.html',
+        // HTML is emitted after this hook runs, so the pages are listed from the config.
+        ...Object.values(PAGES),
         ...Object.keys(bundle).filter((f) => f !== 'sw.js' && !f.endsWith('.map')),
         ...publicShellFiles(),
       ];
@@ -48,7 +53,11 @@ export default defineConfig({
   build: {
     chunkSizeWarningLimit: 1500,
     rollupOptions: {
-      input: { index: 'index.html', insights: 'insights/index.html', sw: 'src/sw.ts' },
+      input: {
+        index: 'index.html',
+        ...PAGES,
+        sw: 'src/sw.ts',
+      },
       output: {
         entryFileNames: (chunk) => (chunk.name === 'sw' ? 'sw.js' : 'assets/[name]-[hash].js'),
       },

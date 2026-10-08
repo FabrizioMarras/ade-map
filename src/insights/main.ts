@@ -1,6 +1,6 @@
 import '../app.css';
 import './insights.css';
-import { resolveTheme, storedThemePref } from '../lib/theme';
+import { applyStoredTheme } from '../lib/theme';
 import { asOfLabel, nowWall, parseWall } from '../lib/time';
 import {
   at23Sentence,
@@ -14,10 +14,6 @@ import {
 } from './sentences';
 
 // Same light/dark behaviour as the app (stored preference, else dark 18:00–07:00).
-function applyTheme() {
-  document.documentElement.dataset.theme = resolveTheme(storedThemePref());
-}
-
 // --- tiny DOM helpers (all text goes through textContent) ---------------------------------
 type Attrs = Record<string, string | number | undefined>;
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, attrs: Attrs = {}, ...kids: (Node | string)[]) {
@@ -459,7 +455,7 @@ function clusterTiles(i: Insights) {
 }
 
 async function main() {
-  applyTheme();
+  applyStoredTheme();
   const root = document.getElementById('insights')!;
   try {
     const res = await fetch('../data/insights.json', { cache: 'no-cache' });

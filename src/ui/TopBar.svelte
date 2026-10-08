@@ -9,6 +9,8 @@
 
   const nFilters = $derived(activeFilterCount(app.filters));
   const festival = $derived(isFestivalTime(app.now));
+  /** The Insights link and the guide button step aside (space kept) while a party or venue is open. */
+  const detailOpen = $derived(!!(app.selectedEventId || app.selectedVenueId));
   let input: HTMLInputElement | undefined = $state();
   /** The query when the box gained focus, while the old search is still to be replaced. */
   let focusValue: string | null = null;
@@ -43,9 +45,9 @@
     <a
       class="insights-link"
       href="./insights/"
-      class:hidden={!!(app.selectedEventId || app.selectedVenueId)}
-      aria-hidden={app.selectedEventId || app.selectedVenueId ? 'true' : undefined}
-      tabindex={app.selectedEventId || app.selectedVenueId ? -1 : undefined}
+      class:hidden={detailOpen}
+      aria-hidden={detailOpen ? 'true' : undefined}
+      tabindex={detailOpen ? -1 : undefined}
     >
       Insights · the festival by hour, area and genre <span aria-hidden="true">→</span>
     </a>
@@ -86,17 +88,29 @@
           </button>
         {/if}
       </label>
-      <button class="round" aria-label="Filters{nFilters ? ` (${nFilters} active)` : ''}" onclick={onfilters}>
+      <button
+        class="round-btn"
+        aria-label="Filters{nFilters ? ` (${nFilters} active)` : ''}"
+        onclick={onfilters}
+      >
         <Icon name="filter" />
         {#if nFilters}<span class="badge">{nFilters}</span>{/if}
       </button>
       <button
-        class="round"
+        class="round-btn"
         aria-label={app.theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
         onclick={cycleTheme}
       >
         <Icon name={app.theme === 'dark' ? 'sun' : 'moon'} />
       </button>
+      <a
+        class="round-btn"
+        class:hidden={detailOpen}
+        href="./help/"
+        aria-label="How to use the app"
+        aria-hidden={detailOpen ? 'true' : undefined}
+        tabindex={detailOpen ? -1 : undefined}><span aria-hidden="true">?</span></a
+      >
     </div>
     <div class="row">
       {#if festival}
@@ -168,7 +182,7 @@
     color: var(--accent);
     text-decoration: none;
   }
-  .insights-link.hidden {
+  .hidden {
     visibility: hidden;
   }
   .pulse-card {
@@ -269,18 +283,6 @@
     border-radius: 999px;
     background: var(--surface-2);
     color: var(--fg);
-  }
-  .round {
-    position: relative;
-    flex: none;
-    width: var(--tap);
-    height: var(--tap);
-    display: grid;
-    place-items: center;
-    border: 0;
-    border-radius: 999px;
-    background: var(--surface);
-    box-shadow: var(--shadow);
   }
   .badge {
     position: absolute;

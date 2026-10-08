@@ -61,7 +61,7 @@
   style:--stack-bottom="{bottom + 12}px"
 >
   <button
-    class="ctl"
+    class="map-ctl"
     class:on={app.pulseOn}
     aria-pressed={app.pulseOn}
     aria-label={app.pulseOn ? 'Exit Pulse' : 'Pulse: see the festival over time'}
@@ -72,7 +72,7 @@
   </button>
   {#if !app.pulseOn}
     <button
-      class="ctl planb"
+      class="map-ctl planb"
       class:on={!!app.planB}
       aria-pressed={!!app.planB}
       aria-busy={planBLocating}
@@ -83,7 +83,7 @@
       <span>Plan<br />B</span>
     </button>
     <button
-      class="ctl"
+      class="map-ctl"
       class:on={!!app.drawMode}
       aria-pressed={!!app.drawMode}
       aria-label={app.drawMode ? 'Cancel area selection' : 'Select area'}
@@ -93,11 +93,11 @@
       <Icon name={app.drawMode ? 'close' : 'lasso'} />
     </button>
   {/if}
-  <button class="ctl" aria-label="Locate me" aria-busy={locating} onclick={locate}>
+  <button class="map-ctl" aria-label="Locate me" aria-busy={locating} onclick={locate}>
     <Icon name="locate" />
   </button>
   {#if !app.pulseOn}
-    <button class="ctl" aria-label="Zoom to fit results" onclick={onfit}>
+    <button class="map-ctl" aria-label="Zoom to fit results" onclick={onfit}>
       <Icon name="fit" />
     </button>
   {/if}
@@ -118,30 +118,10 @@
     gap: 8px;
     transition: bottom 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
-  .ctl {
-    width: var(--tap);
-    height: var(--tap);
-    display: grid;
-    place-items: center;
-    border: 0;
-    border-radius: 12px;
-    background: var(--surface);
-    box-shadow: var(--shadow);
-  }
-  .planb span {
-    font: 700 12px/1 var(--font-display);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    text-align: center;
-  }
-  .ctl[aria-busy='true'] span {
+  .map-ctl[aria-busy='true'] span {
     opacity: 0.5;
   }
-  .ctl.on {
-    background: var(--accent);
-    color: var(--accent-ink);
-  }
-  .ctl[aria-busy='true'] {
+  .map-ctl[aria-busy='true'] {
     opacity: 0.6;
   }
   .hint {

@@ -1,0 +1,366 @@
+/*
+ * Map guide on the app's design system: tokens, fonts and theme come from src/app.css, buttons,
+ * chips and map controls from src/ui/ui.css. Only the guide's layout is defined here.
+ */
+
+/* The app shell locks scrolling; this is a normal scrolling page. */
+html,
+body {
+  height: auto;
+  overflow: visible;
+  overflow-x: hidden;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: calc(var(--safe-top) + 120px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+:where(#help) a {
+  color: inherit;
+}
+
+/* Top bar, same shape as the app's */
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--bg);
+  padding-top: var(--safe-top);
+  border-bottom: 1px solid var(--line);
+}
+
+.bar-row {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--tap);
+  text-decoration: none;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.back:hover,
+.back:focus-visible {
+  color: var(--fg);
+}
+
+.bar h1 {
+  margin: 0;
+  font: 700 26px/1 var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+
+.bar h1 span {
+  background: var(--accent);
+  color: var(--accent-ink);
+  padding: 2px 6px;
+  margin-right: 6px;
+}
+
+.toc {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 16px 10px;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.toc::-webkit-scrollbar {
+  display: none;
+}
+
+.toc a {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--chip);
+  font: 600 13px/1 var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-decoration: none;
+}
+
+.wrap {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 16px calc(var(--safe-bottom) + 48px);
+}
+
+.intro {
+  margin: 20px 0 8px;
+  font-size: 17px;
+}
+
+.intro p {
+  margin: 0 0 8px;
+}
+
+.unofficial {
+  display: inline-block;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font: 600 12px/1 var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+#help section {
+  margin-top: 14px;
+  padding: 22px 0 6px;
+  border-top: 1px solid var(--line);
+}
+
+#help section:first-of-type {
+  margin-top: 0;
+  border-top: 0;
+}
+
+#help h2 {
+  margin: 0 0 12px;
+  font: 700 30px/1 var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-wrap: balance;
+}
+
+#help h2 small {
+  display: block;
+  margin-top: 4px;
+  font: 600 13px/1.4 var(--font-body);
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+
+#help p {
+  margin: 0 0 10px;
+  max-width: 62ch;
+}
+
+/* Steps: figure on the left, text on the right */
+.step {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  margin: 12px 0;
+}
+
+.step h3 {
+  margin: 0 0 4px;
+  font: 700 19px/1.1 var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+
+#help .step p {
+  margin: 0;
+}
+
+.fig {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--fg);
+}
+
+.fig.star {
+  color: var(--accent);
+}
+
+/* The pin count, as the map's labels */
+.fig .count {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font: 700 13px/20px var(--font-display);
+  text-align: center;
+}
+
+.fig .pin2 {
+  position: absolute;
+  left: 14px;
+  bottom: 12px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+/* Real chip / control styles from ui.css; just not interactive here. */
+.fig .demo {
+  pointer-events: none;
+  display: inline-grid;
+  place-items: center;
+}
+
+.fig .day-chip.demo {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+  font-size: 15px;
+}
+
+/* Inline names of controls */
+.ui {
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--chip);
+  font: 600 0.92em var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.ui.y {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+
+.ico {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 20px;
+  vertical-align: -4px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--chip);
+}
+
+/* Badges, as the party cards' tags */
+.badge {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  vertical-align: 1px;
+  white-space: nowrap;
+}
+
+.badge.so {
+  background: var(--soldout);
+  color: var(--surface);
+}
+
+.badge.rs {
+  background: var(--resale);
+  color: var(--resale-ink);
+}
+
+.badge.free {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.tip {
+  margin: 12px 0 4px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--accent);
+  border-radius: 0 10px 10px 0;
+  background: var(--surface);
+  font-size: 15px;
+}
+
+.tip b {
+  margin-right: 6px;
+  font: 700 13px var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+#help dl {
+  margin: 8px 0 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 14px;
+  max-width: 62ch;
+}
+
+#help dt {
+  font: 600 15px/1.5 var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+#help dd {
+  margin: 0;
+}
+
+.cta {
+  margin-top: 16px;
+  font: 700 16px var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Footer: as the app's credits */
+#help footer {
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 13px;
+}
+
+#help footer p {
+  margin: 0 0 6px;
+  max-width: none;
+}
+
+#help footer .copyright {
+  margin-top: 10px;
+  color: var(--fg);
+  font-weight: 600;
+}
+
+@media (min-width: 600px) {
+  .step {
+    grid-template-columns: 88px minmax(0, 1fr);
+  }
+  .fig {
+    width: 88px;
+    height: 88px;
+  }
+}

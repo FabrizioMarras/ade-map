@@ -98,3 +98,74 @@
 .sheet-head h2:focus-visible {
   outline: 3px solid var(--focus);
 }
+
+/* Controls shared by the map and the guide pages (help/, insights/help/). */
+.round-btn {
+  position: relative;
+  flex: none;
+  width: var(--tap);
+  height: var(--tap);
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--fg);
+  font: 700 20px/1 var(--font-display);
+  text-decoration: none;
+}
+.map-ctl {
+  width: var(--tap);
+  height: var(--tap);
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.map-ctl.planb span {
+  font: 700 12px/1 var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: center;
+}
+.map-ctl.on {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.day-chip {
+  position: relative;
+  flex: none;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 17px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.12);
+}
+.day-chip.fav {
+  min-width: 44px;
+  padding: 0 10px;
+}
+.day-chip .n {
+  margin-left: 5px;
+  font-size: 15px;
+}
+.day-chip[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+/* Bigger hit area without a bigger chip. */
+.day-chip::after {
+  content: '';
+  position: absolute;
+  inset: -4px -2px;
+}

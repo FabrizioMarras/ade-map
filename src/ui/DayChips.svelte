@@ -30,7 +30,7 @@
 <div class="days" role="group" aria-label="Day" bind:this={row}>
   {#each chips as c (c.key)}
     <button
-      class="chip"
+      class="day-chip"
       class:fav={c.key === 'fav'}
       aria-pressed={!app.nowMode && !app.sharedList && app.day === c.key}
       aria-label={c.key === 'fav' ? `My list (${app.favs.size})` : undefined}
@@ -62,41 +62,5 @@
   }
   .days::-webkit-scrollbar {
     display: none;
-  }
-  .chip {
-    flex: none;
-    min-height: 36px;
-    padding: 0 12px;
-    border-radius: 999px;
-    border: 1px solid var(--line);
-    background: var(--surface);
-    font-family: var(--font-display);
-    font-weight: 700;
-    font-size: 17px;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
-    box-shadow: 0 1px 4px rgb(0 0 0 / 0.12);
-  }
-  .chip.fav {
-    min-width: 44px;
-    padding: 0 10px;
-  }
-  .n {
-    margin-left: 5px;
-    font-size: 15px;
-  }
-  .chip[aria-pressed='true'] {
-    background: var(--accent);
-    color: var(--accent-ink);
-    border-color: var(--accent);
-  }
-  /* Bigger hit area without a bigger chip. */
-  .chip {
-    position: relative;
-  }
-  .chip::after {
-    content: '';
-    position: absolute;
-    inset: -4px -2px;
   }
 </style>

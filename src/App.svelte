@@ -491,6 +491,7 @@
           <p>
             <a href="./insights/">Insights</a> — the festival by hour, neighbourhood and genre, for organisers
           </p>
+          <p><a href="./help/">How to use the app</a> — pins, filters, My list, Plan B and Pulse explained</p>
           <p class="copyright">
             © {new Date().getFullYear()} FM Consulting ·
             <a href="https://fabriziomarras.com" target="_blank" rel="noopener">fabriziomarras.com</a>
