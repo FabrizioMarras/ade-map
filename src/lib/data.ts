@@ -11,6 +11,8 @@ export const BASEMAP_URL = 'data/basemap.json';
 
 export function indexData(raw: RawData): Dataset {
   const venuesById = new Map(raw.venues.map((v) => [v.id, v]));
+  // Merged duplicates: old ids point at the kept record.
+  for (const v of raw.venues) for (const a of v.aliases ?? []) if (!venuesById.has(a)) venuesById.set(a, v);
   const eventsById = new Map<number, AdeEvent>();
   const eventsByDay = new Map<string, AdeEvent[]>(DAYS.map((d) => [d.key, []]));
   const eventsByVenue = new Map<string, AdeEvent[]>();

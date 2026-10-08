@@ -91,6 +91,8 @@
         { layers: ['pins'] },
       );
       const ids = [...new Set(feats.map((f) => String(f.properties.id)))];
+      const members = (id: string) =>
+        String(feats.find((g) => String(g.properties.id) === id)?.properties.ids ?? id).split(',');
       // Prefer pins that are not faded, closest first.
       const scored = ids
         .map((id) => {
@@ -100,7 +102,8 @@
         })
         .filter((s) => s.d <= r)
         .sort((a, b) => Number(a.dim) - Number(b.dim) || a.d - b.d);
-      if (scored.length) onpick(scored.map((s) => s.id));
+      // A shared-spot pin expands to all its venues (→ chooser).
+      if (scored.length) onpick([...new Set(scored.flatMap((s) => members(s.id)))]);
     });
     for (const layer of ['pins', 'pulse-core']) {
       map.on('mouseenter', layer, () => (map!.getCanvas().style.cursor = 'pointer'));
@@ -118,7 +121,7 @@
   // so the map itself never has to repaint for it. (Not in Pulse mode, which has its own.)
   const pulseMarkers = new Map<string, Marker>();
   $effect(() => {
-    const live = app.pulseOn ? [] : app.pins.filter((p) => p.live && p.matched > 0);
+    const live = app.pulseOn ? [] : app.mapPins.filter((p) => p.live && p.matched > 0);
     if (!map) return;
     const keep = new Set(live.map((p) => p.venue.id));
     for (const [id, mk] of pulseMarkers) {
@@ -300,7 +303,7 @@
   // Push pin data whenever the result set or selection changes.
   $effect(() => {
     const data = pinsGeoJSON(
-      app.pins,
+      app.mapPins,
       coords,
       app.focusVenueId,
       app.query.trim().length > 0,

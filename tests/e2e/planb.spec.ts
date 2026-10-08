@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { ready } from './helpers';
+import { pins, ready } from './helpers';
 
 const REMBRANDTPLEIN = { latitude: 52.3662, longitude: 4.8966 };
 
@@ -28,18 +28,15 @@ test.describe('Plan B with a location at Rembrandtplein on Fri 23:30', () => {
     expect(notes.every((n) => /on now|starts \d\d:\d\d/.test(n))).toBe(true);
 
     // Pins outside the result set fade; result venues stay bright.
-    const pins = await page.evaluate(() => {
-      const m = (window as unknown as { __adeMap: import('maplibre-gl').Map }).__adeMap;
-      const src = m.getSource('venues') as unknown as { _data: { geojson?: GeoJSON.FeatureCollection } };
-      const fc = (src._data.geojson ?? src._data) as GeoJSON.FeatureCollection;
-      return {
-        faded: fc.features.filter((f) => f.properties!.dim).length,
-        bright: fc.features.filter((f) => !f.properties!.dim).map((f) => f.properties!.name as string),
-      };
-    });
-    expect(pins.faded).toBeGreaterThan(100);
+    const all = await pins(page);
+    const pinState = {
+      faded: all.filter((p) => p.dim).length,
+      bright: all.filter((p) => !p.dim).flatMap((p) => p.names),
+    };
+    expect(pinState.faded).toBeGreaterThan(100);
     const venues = new Set(await page.locator('.planb .card .venue').allTextContents());
-    expect(new Set(pins.bright)).toEqual(venues);
+    // Every listed venue is lit (a shared-spot pin may also name neighbours with nothing on).
+    for (const v of venues) expect(pinState.bright).toContain(v);
 
     await page.getByRole('button', { name: 'Close Plan B' }).click();
     await expect(head).toHaveText(/Fri 23 · 335 parties/);

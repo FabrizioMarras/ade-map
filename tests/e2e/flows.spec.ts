@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { jumpTo, pinPoint, ready } from './helpers';
+import { jumpTo, pinPoint, pins, ready } from './helpers';
 
 const PARADISO: [number, number] = [4.88394502, 52.36227745];
 
@@ -116,20 +116,9 @@ test('lasso around Rembrandtplein lists only those venues', async ({ page }) => 
 
   const r = 80; // px, ≈ 90 m at zoom 16
   // Venues inside the circle, measured before drawing (the map re-frames the area afterwards).
-  const insideNames = await page.evaluate(
-    ([cx, cy, rad]) => {
-      const m = (window as unknown as { __adeMap: import('maplibre-gl').Map }).__adeMap;
-      const src = m.getSource('venues') as unknown as { _data: { geojson?: GeoJSON.FeatureCollection } };
-      const fc = (src._data.geojson ?? src._data) as GeoJSON.FeatureCollection;
-      return fc.features
-        .filter((f) => {
-          const p = m.project((f.geometry as GeoJSON.Point).coordinates as [number, number]);
-          return Math.hypot(p.x - cx, p.y - cy) <= rad + 2;
-        })
-        .map((f) => f.properties!.name as string);
-    },
-    [c.x, c.y, r] as const,
-  );
+  const insideNames = (await pins(page))
+    .filter((p) => Math.hypot(p.x - c.x, p.y - c.y) <= r + 2)
+    .flatMap((p) => p.names);
 
   await page.getByRole('button', { name: 'Select area' }).click();
   await expect(page.getByText('Draw around the area you want')).toBeVisible();
@@ -335,4 +324,22 @@ test('day chips: My list first, All last, selected day scrolled into view', asyn
   const sun = page.getByRole('button', { name: 'Sun 25' });
   await expect(sun).toHaveAttribute('aria-pressed', 'true');
   await expect(sun).toBeInViewport({ ratio: 1 });
+});
+
+test('venues sharing one spot are one pin; tapping it opens the venue chooser', async ({ page }) => {
+  const REMBRANDTPLEIN_17: [number, number] = [4.89665454, 52.36642208]; // Oliva, Three Sisters Pub, Escape deLux
+  await page.goto('./#d=23');
+  await ready(page);
+  await jumpTo(page, REMBRANDTPLEIN_17, 17);
+  const spot = (await pins(page)).find((p) => p.names.includes('Oliva'))!;
+  // On Friday two of the three have parties: one pin for both.
+  expect(spot.names.sort()).toEqual(['Oliva', 'Three Sisters Pub']);
+  expect((await pins(page)).filter((p) => p.names.includes('Three Sisters Pub'))).toHaveLength(1);
+
+  await page.mouse.click(spot.x, spot.y);
+  await expect(page.locator('.sheet-head h2')).toContainText('Pick a venue');
+  const rows = page.locator('.chooser .name');
+  await expect(rows).toHaveText(['Oliva', 'Three Sisters Pub']);
+  await rows.first().click();
+  await expect(page.locator('.sheet-head h2')).toContainText('Oliva');
 });

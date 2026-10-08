@@ -1,7 +1,7 @@
 {
   "generated": "2026-10-07T17:42:22.319Z",
   "events": 1263,
-  "venues": 317,
+  "venues": 315,
   "byDay": {
     "2026-10-21": 161,
     "2026-10-22": 297,
@@ -45,10 +45,121 @@
     {
       "id": "1670811",
       "name": "Pacific Amsterdam"
+    }
+  ],
+  "venuesBeforeMerge": 317,
+  "mergedVenues": [
+    {
+      "kept": "2561600",
+      "name": "Bar Bacan",
+      "removed": [
+        "2851488"
+      ]
     },
     {
-      "id": "2818668",
-      "name": "Oceandiva Original"
+      "kept": "2818662",
+      "name": "Oceandiva Original",
+      "removed": [
+        "2818668"
+      ]
+    }
+  ],
+  "sharedSpots": [
+    {
+      "address": "Overhoeksplein 1, Amsterdam",
+      "venues": [
+        "The Loft Amsterdam",
+        "Madam",
+        "Shelter",
+        "The Forbidden Garden at The Butcher Social Club",
+        "A'DAM Toren"
+      ]
+    },
+    {
+      "address": "Bijlmerbajes, H.J.E. Wenckebachweg 48, Amsterdam",
+      "venues": [
+        "Levenslang Amsterdam",
+        "Bajes Amsterdam"
+      ]
+    },
+    {
+      "address": "Rigakade 10, Amsterdam",
+      "venues": [
+        "THE OTHER SIDE",
+        "Borisov"
+      ]
+    },
+    {
+      "address": "Wibautstraat 150, Amsterdam",
+      "venues": [
+        "Werkplaats",
+        "Doka"
+      ]
+    },
+    {
+      "address": "Kleine-Gartmanplantsoen 7, Amsterdam",
+      "venues": [
+        "Palladium Amsterdam",
+        "Sociëteit De Kring"
+      ]
+    },
+    {
+      "address": "Piet Heinkade 1, Amsterdam",
+      "venues": [
+        "Muziekgebouw aan 't IJ",
+        "Bimhuis"
+      ]
+    },
+    {
+      "address": "Rembrandtplein 17-1, Amsterdam",
+      "venues": [
+        "Café De Kroon",
+        "Royal Room"
+      ]
+    },
+    {
+      "address": "Mauritskade 57, Amsterdam",
+      "venues": [
+        "Auditorium",
+        "OOSTerbar",
+        "Generator Amsterdam"
+      ]
+    },
+    {
+      "address": "Moermanskkade 107, Amsterdam",
+      "venues": [
+        "United Studio's",
+        "Mediahaven"
+      ]
+    },
+    {
+      "address": "Rembrandtplein 17, Amsterdam",
+      "venues": [
+        "Oliva",
+        "Three Sisters Pub",
+        "Escape deLux"
+      ]
+    },
+    {
+      "address": "Rembrandtplein 11, Amsterdam",
+      "venues": [
+        "Free Your Mind Club",
+        "Escape Club"
+      ]
+    },
+    {
+      "address": "Amstel 1, Amsterdam",
+      "venues": [
+        "STOPERA",
+        "Café Café Amsterdam"
+      ]
+    },
+    {
+      "address": "Korte leidsedwarsstraat 36, Amsterdam",
+      "venues": [
+        "Velvet Vixen",
+        "LEIDSE Amsterdam"
+      ]
     }
   ]
 }

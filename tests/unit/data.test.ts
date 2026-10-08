@@ -4,7 +4,11 @@ import { data, raw } from './fixture';
 describe('indexData', () => {
   it('indexes every event and venue', () => {
     expect(data.events).toHaveLength(1263);
+    // 317 venue records, of which 2 duplicates were merged (their ids remain as aliases).
+    expect(data.venues).toHaveLength(315);
     expect(data.venuesById.size).toBe(317);
+    expect(data.venuesById.get('2851488')?.name).toBe('Bar Bacan'); // merged "Bar Bacán"
+    expect(data.venuesById.get('2818668')?.id).toBe('2818662'); // second "Oceandiva Original"
     expect(data.events.every((e) => e.venue && Number.isFinite(e.venue.lat))).toBe(true);
   });
 

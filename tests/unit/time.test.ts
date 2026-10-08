@@ -38,7 +38,13 @@ describe('time', () => {
   it('formats overnight ranges', () => {
     const e = ev('2026-10-24 23:00', '2026-10-25 07:00');
     expect(timeRange(e)).toBe('Sat 24 · 23:00 → 07:00 Sun');
-    expect(shortRange(e)).toBe('23:00–07:00');
+    expect(shortRange(e)).toBe('23:00 → 07:00 Sun');
+    expect(shortRange(ev('2026-10-21 14:00', '2026-10-21 23:30'))).toBe('14:00–23:30');
+    expect(shortRange(ev('2026-10-23 18:00', '2026-10-24 00:00'))).toBe('18:00 → 00:00 Sat');
+    expect(shortRange(ev('2026-10-21 14:00', '2026-10-21 23:30', false))).toBe('14:00');
+    expect(
+      shortRange({ startMs: parseWall('2026-10-23 00:00'), end: '2026-10-23 00:00', showEnd: true }),
+    ).toBe('00:00');
     expect(timeRange(ev('2026-10-21 14:00', '2026-10-21 23:30'))).toBe('Wed 21 · 14:00 → 23:30');
     expect(timeRange(ev('2026-10-21 14:00', '2026-10-21 23:30', false))).toBe('Wed 21 · 14:00');
   });

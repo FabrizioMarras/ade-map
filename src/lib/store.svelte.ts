@@ -1,5 +1,5 @@
 import { applyQuery, emptyFilters, inArea, type Filters } from './filter';
-import type { LngLat } from './geo';
+import { spotKey, type LngLat } from './geo';
 import { formatHash, parseHash, type DayScope } from './hash';
 import { mergeIntoList, shareOrCopy } from './share';
 import { KEYS, readJSON, writeJSON } from './storage';
@@ -19,6 +19,8 @@ export interface VenuePin {
   soldOutAll: boolean;
   live: boolean;
   fav: boolean;
+  /** Map pins only: all venues sharing this spot (2+), this pin's venue being the busiest. */
+  members?: Venue[];
 }
 
 function autoTheme(now: number): 'light' | 'dark' {
@@ -156,6 +158,39 @@ class AppState {
       if (this.favs.has(e.id)) p.fav = true;
     }
     return [...byVenue.values()];
+  });
+
+  /**
+   * Pins as drawn on the map: venues on the same spot become one pin with the combined count;
+   * tapping it opens the venue chooser.
+   */
+  mapPins = $derived.by<VenuePin[]>(() => {
+    const spots = new Map<string, VenuePin[]>();
+    for (const p of this.pins) {
+      const k = spotKey(p.venue);
+      if (!spots.has(k)) spots.set(k, []);
+      spots.get(k)!.push(p);
+    }
+    const out: VenuePin[] = [];
+    for (const group of spots.values()) {
+      if (group.length === 1) {
+        out.push(group[0]);
+        continue;
+      }
+      group.sort(
+        (a, b) => b.matched - a.matched || b.count - a.count || a.venue.name.localeCompare(b.venue.name),
+      );
+      out.push({
+        venue: group[0].venue,
+        count: group.reduce((n, p) => n + p.count, 0),
+        matched: group.reduce((n, p) => n + p.matched, 0),
+        soldOutAll: group.every((p) => p.soldOutAll),
+        live: group.some((p) => p.live),
+        fav: group.some((p) => p.fav),
+        members: group.map((p) => p.venue),
+      });
+    }
+    return out;
   });
 
   selectedVenue = $derived(

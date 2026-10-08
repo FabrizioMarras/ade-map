@@ -113,3 +113,8 @@ export function directionsUrls(lat: number, lng: number, name: string) {
     apple: `https://maps.apple.com/?daddr=${lat},${lng}&q=${q}`,
   };
 }
+
+/** Venues within ~5 m share a spot (e.g. three bars at Rembrandtplein 17): one pin on the map. */
+export function spotKey(v: { lat: number; lng: number }): string {
+  return `${v.lat.toFixed(4)},${v.lng.toFixed(4)}`;
+}

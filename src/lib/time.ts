@@ -114,8 +114,13 @@ export function timeRange(ev: { startMs: number; end: string; showEnd: boolean }
 }
 
 /** Short "23:00–07:00" used on cards. */
+/** Card time: "14:00–23:30", or for overnight parties "23:00 → 07:00 Sun". */
 export function shortRange(ev: { startMs: number; end: string; showEnd: boolean }): string {
-  return ev.showEnd ? `${hhmm(ev.startMs)}–${hhmm(parseWall(ev.end))}` : hhmm(ev.startMs);
+  if (!ev.showEnd) return hhmm(ev.startMs);
+  const end = parseWall(ev.end);
+  if (!(end > ev.startMs)) return hhmm(ev.startMs); // no usable end (e.g. "00:00–00:00")
+  if (dayKeyOf(end) === dayKeyOf(ev.startMs)) return `${hhmm(ev.startMs)}–${hhmm(end)}`;
+  return `${hhmm(ev.startMs)} → ${hhmm(end)} ${WEEKDAYS[new Date(end).getUTCDay()]}`;
 }
 
 export function overlaps(a: { startMs: number; endMs: number }, b: { startMs: number; endMs: number }) {

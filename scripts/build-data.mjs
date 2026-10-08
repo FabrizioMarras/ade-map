@@ -2,6 +2,7 @@
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { RAW, ROOT, args, readJSON, readManualFixes, summary, writeJSON } from './lib.mjs';
+import { mergeDuplicateVenues, sharedSpots } from './merge-venues.mjs';
 import { splitData } from './split-data.mjs';
 
 const OUT = join(ROOT, 'public/data/ade-2026.json');
@@ -62,9 +63,14 @@ for (const e of events) {
 }
 
 const used = new Set(out.map((e) => e.venueId));
-const outVenues = venues
+const usedVenues = venues
   .filter((v) => used.has(v.id))
   .map(({ id, name, address, url, lat, lng, geo }) => ({ id, name, address, url, lat, lng, geo }));
+// Duplicate venue records (same name within 50 m) become one; events are remapped.
+const dedup = mergeDuplicateVenues(usedVenues, out);
+const outVenues = dedup.venues;
+out.splice(0, out.length, ...dedup.events);
+const spots = sharedSpots(outVenues);
 for (const v of outVenues) {
   if (v.lat < BOUNDS.minLat || v.lat > BOUNDS.maxLat || v.lng < BOUNDS.minLng || v.lng > BOUNDS.maxLng) {
     report.outsideBbox.push(`${v.id} ${v.name} (${v.lat}, ${v.lng})`);
@@ -137,7 +143,10 @@ writeJSON(META, {
   hash,
   events: out.length,
   venues: outVenues.length,
+  venuesBeforeMerge: usedVenues.length,
   byDay: Object.fromEntries(Object.entries(byDay).sort()),
+  mergedVenues: dedup.merged,
+  sharedSpots: spots,
   manualFixes: outVenues.filter((v) => v.geo.startsWith('manual')).map((v) => ({ id: v.id, name: v.name })),
 });
 
@@ -156,6 +165,10 @@ const changedList =
 const contentChanged = hash !== previous.hash;
 console.log(`\n${out.length} events at ${outVenues.length} venues → public/data/ade-2026.json`);
 console.log('Per day:', perDay);
+console.log(`Venues: ${usedVenues.length} records → ${outVenues.length} after merging duplicates`);
+for (const m of dedup.merged) console.log(`  merged ${m.removed.join(', ')} into ${m.kept} ${m.name}`);
+console.log(`Shared spots (one pin with a chooser): ${spots.length}`);
+for (const sp of spots) console.log(`  ${sp.address}: ${sp.venues.join(' · ')}`);
 for (const [k, list] of Object.entries(report)) {
   console.log(`${k}: ${list.length}`);
   for (const x of list.slice(0, 20)) console.log(`  - ${x}`);
@@ -177,6 +190,10 @@ summary(
     `### ${contentChanged ? '✅ Programme updated' : '✅ Programme checked — no changes'}`,
     '',
     `**${out.length} events** at **${outVenues.length} venues** · ${perDay}`,
+    '',
+    `Venues: ${usedVenues.length} records → ${outVenues.length} after merging duplicates${
+      dedup.merged.length ? ` (${dedup.merged.map((m) => m.name).join(', ')})` : ''
+    } · ${spots.length} shared spots shown as one pin`,
     '',
     `Changes vs the last run: **+${added.length}** added, **−${removed.length}** removed, ${newlySoldOut.length} newly sold out, ${changedLineups.length} line-ups changed · fields: ${changedList}`,
     added.length ? `\n**Added**\n${list(added, (e) => `${e.start} — ${e.title}`)}` : '',

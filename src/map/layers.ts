@@ -42,7 +42,9 @@ export function pinsGeoJSON(
       id: Number(p.venue.id),
       properties: {
         id: p.venue.id,
-        name: p.venue.name,
+        // A shared spot lists all its venues; a tap then opens the chooser.
+        ids: (p.members ?? [p.venue]).map((v) => v.id).join(','),
+        name: p.members ? `${p.venue.name} +${p.members.length - 1}` : p.venue.name,
         count: p.count,
         // While searching, the badge counts matching parties rather than all parties.
         label: searching ? (p.matched > 1 ? String(p.matched) : '') : p.count > 1 ? String(p.count) : '',
@@ -53,9 +55,14 @@ export function pinsGeoJSON(
         resale: resale && p.soldOutAll,
         live: p.live,
         fav: p.fav,
-        selected: p.venue.id === selectedId,
+        selected: (p.members ?? [p.venue]).some((v) => v.id === selectedId),
       },
-      geometry: { type: 'Point', coordinates: coords.get(p.venue.id) ?? [p.venue.lng, p.venue.lat] },
+      geometry: {
+        type: 'Point',
+        coordinates: p.members
+          ? [p.venue.lng, p.venue.lat]
+          : (coords.get(p.venue.id) ?? [p.venue.lng, p.venue.lat]),
+      },
     })),
   };
 }

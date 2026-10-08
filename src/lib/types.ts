@@ -6,6 +6,8 @@ export interface Venue {
   lat: number;
   lng: number;
   geo: string;
+  /** Ids of duplicate records merged into this venue (old #v= links still resolve). */
+  aliases?: string[];
 }
 
 export interface RawEvent {
