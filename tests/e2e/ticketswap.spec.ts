@@ -6,7 +6,7 @@ const SEARCH = 'https://www.ticketswap.com/search?query=';
 test('sold-out party links to TicketSwap instead of a disabled button', async ({ page }) => {
   await page.goto('./#d=23&e=2804807'); // Gashouder Presents: Job Jobse — sold out
   const btn = page.getByRole('link', { name: 'Check TicketSwap' });
-  await expect(btn).toHaveAttribute('href', SEARCH + encodeURIComponent('Gashouder Presents: Job Jobse'));
+  await expect(btn).toHaveAttribute('href', SEARCH + encodeURIComponent('Gashouder Job Jobse'));
   await expect(btn).toHaveAttribute('target', '_blank');
   await expect(page.getByText('Resale via TicketSwap · prices capped')).toBeVisible();
   await expect(page.getByRole('button', { name: /Sold out/ })).toHaveCount(0);
