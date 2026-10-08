@@ -36,6 +36,7 @@
       aria-label={c.key === 'fav' ? `My list (${app.favs.size})` : undefined}
       title={c.key === 'fav' ? 'My list' : undefined}
       onclick={() => {
+        app.closePlanB();
         app.nowMode = false;
         app.setDay(c.key);
       }}

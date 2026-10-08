@@ -10,10 +10,12 @@
     showVenue?: boolean;
     showDay?: boolean;
     note?: string;
+    /** Show sold out as 'Sold out · TicketSwap' (Plan B, or the TicketSwap filter mode). */
+    resale?: boolean;
     onopen?: (e: AdeEvent) => void;
   }
 
-  let { event, showVenue = false, showDay = false, note, onopen }: Props = $props();
+  let { event, showVenue = false, showDay = false, note, resale = false, onopen }: Props = $props();
   const st = $derived(status(event, app.now));
 </script>
 
@@ -29,7 +31,7 @@
     {#if showVenue}<span class="venue">{event.venue.name}</span>{/if}
     {#if note}<span class="note">{note}</span>{/if}
     <span class="tags">
-      {#if event.soldOut && app.filters.soldOut === 'resale'}<span class="tag resale"
+      {#if event.soldOut && (resale || app.filters.soldOut === 'resale')}<span class="tag resale"
           >Sold out · TicketSwap</span
         >{:else if event.soldOut}<span class="tag soldout">Sold out</span>{/if}
       {#if event.free}<span class="tag free">Free</span>{/if}

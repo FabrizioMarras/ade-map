@@ -2,8 +2,9 @@ import { applyQuery, emptyFilters, inArea, type Filters } from './filter';
 import type { LngLat } from './geo';
 import { formatHash, parseHash, type DayScope } from './hash';
 import { KEYS, readJSON, writeJSON } from './storage';
+import { DEFAULT_MINUTES, PREVIEW_AT, planB as computePlanB, type PlanBItem } from './planb';
 import { clampT, defaultT } from './pulse';
-import { defaultDay, nowWall } from './time';
+import { defaultDay, isFestivalTime, nowWall } from './time';
 import type { AdeEvent, Dataset, Venue } from './types';
 
 export type ThemePref = 'auto' | 'light' | 'dark';
@@ -68,8 +69,27 @@ class AppState {
     return d.eventsByDay.get(this.day) ?? [];
   });
 
-  /** Events after every filter: the result set. */
+  /**
+   * Plan B: parties on now or within the hour, within walking distance of `origin`.
+   * `preview` = outside the festival, shown for Fri 23 23:30 so it can be tried.
+   */
+  planB = $state.raw<{
+    origin: LngLat;
+    source: 'location' | 'centre';
+    minutes: number;
+    preview: boolean;
+  } | null>(null);
+
+  planBAt = $derived(this.planB?.preview ? PREVIEW_AT : this.now);
+  planBItems = $derived.by<PlanBItem[]>(() =>
+    this.planB && this.data
+      ? computePlanB(this.data.events, this.planB.origin, this.planBAt, this.planB.minutes)
+      : [],
+  );
+
+  /** Events after every filter: the result set. (Plan B replaces it with its own list.) */
   results = $derived.by<AdeEvent[]>(() => {
+    if (this.planB) return this.planBItems.map((i) => i.event);
     const r = applyQuery(this.scopeEvents, {
       filters: this.filters,
       query: this.query,
@@ -90,7 +110,13 @@ class AppState {
   listMode = $state<'parties' | 'venues'>('parties');
 
   /** Pins only for venues in scope; in Now mode only venues with something on now/soon. */
-  pinEvents = $derived(this.nowMode ? this.results : this.scopeEvents);
+  pinEvents = $derived.by(() => {
+    if (this.nowMode) return this.results;
+    // Plan B: the day's venues stay on the map (faded unless in the result), plus result venues
+    // from another day (e.g. the preview Friday while Wednesday is selected).
+    if (this.planB) return [...new Set([...this.scopeEvents, ...this.results])];
+    return this.scopeEvents;
+  });
 
   pins = $derived.by<VenuePin[]>(() => {
     const byVenue = new Map<string, VenuePin>();
@@ -206,8 +232,30 @@ class AppState {
   }
 
   /** Enter Pulse mode (adds a history entry, so Back returns to the normal map). */
+  /** Start Plan B from `origin` (the user's location, or the map centre as a fallback). */
+  startPlanB(origin: LngLat, source: 'location' | 'centre') {
+    this.chooser = null;
+    this.selectedEventId = null;
+    this.selectedVenueId = null;
+    this.drawMode = null;
+    this.area = null;
+    this.planB = { origin, source, minutes: DEFAULT_MINUTES, preview: !isFestivalTime(this.now) };
+    this.listMode = 'parties';
+    this.writeHash(false);
+    if (!this.wide && this.sheet === 'collapsed') this.sheet = 'half';
+  }
+
+  widenPlanB() {
+    if (this.planB) this.planB = { ...this.planB, minutes: this.planB.minutes * 2 };
+  }
+
+  closePlanB() {
+    this.planB = null;
+  }
+
   enterPulse(t = defaultT(this.now)) {
     if (this.pulseOn) return;
+    this.planB = null;
     this.chooser = null;
     this.selectedEventId = null;
     this.selectedVenueId = null;

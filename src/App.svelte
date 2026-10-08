@@ -11,7 +11,10 @@
   import Brand from './ui/Brand.svelte';
   import FilterSheet from './ui/FilterSheet.svelte';
   import MapControls from './ui/MapControls.svelte';
+  import PlanBList from './ui/PlanBList.svelte';
   import PulseDeck from './ui/PulseDeck.svelte';
+  import { WALK_M_PER_MIN, circlePolygon } from './lib/planb';
+  import { inValidBounds } from './lib/geo';
   import Sparkline from './ui/Sparkline.svelte';
   import { histogram, pulseEvents } from './lib/pulse';
   import Toast from './ui/Toast.svelte';
@@ -180,6 +183,42 @@
     return () => clearTimeout(searchTimer);
   });
 
+  /** Plan B: from the user's location, or the map centre if that isn't available. */
+  let planBLocating = $state(false);
+  function startPlanB() {
+    const fromCentre = () => {
+      const c = mapView?.getCenter();
+      if (c) app.startPlanB(c, 'centre');
+    };
+    if (!('geolocation' in navigator)) return fromCentre();
+    planBLocating = true;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        planBLocating = false;
+        const { latitude: lat, longitude: lng } = pos.coords;
+        if (inValidBounds(lat, lng)) app.startPlanB([lng, lat], 'location');
+        else {
+          toast = { text: 'You seem to be outside Amsterdam — using the map centre' };
+          fromCentre();
+        }
+      },
+      () => {
+        planBLocating = false;
+        fromCentre();
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60_000 },
+    );
+  }
+
+  // Frame the walking radius whenever Plan B starts or widens.
+  let lastPlanB = '';
+  $effect(() => {
+    const pb = app.planB;
+    const key = pb ? `${pb.origin}|${pb.minutes}` : '';
+    if (key && key !== lastPlanB) mapView?.fitTo(circlePolygon(pb!.origin, pb!.minutes * WALK_M_PER_MIN, 16));
+    lastPlanB = key;
+  });
+
   function fitResults() {
     if (app.area) return mapView?.fitTo(app.area);
     const ids = new Set(app.results.map((e) => e.venueId));
@@ -198,6 +237,7 @@
     if (e.key !== 'Escape') return;
     if (app.drawMode) app.drawMode = null;
     else if (app.selectedEventId || app.selectedVenueId || app.chooser) app.back();
+    else if (app.planB) app.closePlanB();
     else if (app.pulseOn) app.exitPulse();
     else if (app.area) app.clearArea();
   }
@@ -219,6 +259,8 @@
     bottom={app.wide && !app.pulseOn ? 12 : bottomCover}
     onlocate={(p) => mapView?.showMe(p)}
     onfit={fitResults}
+    onplanb={() => (app.planB ? app.closePlanB() : startPlanB())}
+    {planBLocating}
     onmessage={(text) => (toast = { text })}
   />
   {#if toast}
@@ -260,6 +302,13 @@
             <button class="icon-btn" aria-label="Close" onclick={() => app.close()}
               ><Icon name="close" /></button
             >
+          {:else if app.planB}
+            <h2 tabindex="-1" aria-live="polite">
+              Plan B<span class="sub"
+                >{plural(app.planBItems.length, 'party', 'parties')} within {app.planB.minutes} min walk</span
+              >
+            </h2>
+            <button class="btn" onclick={() => app.closePlanB()}>Close</button>
           {:else if app.area}
             <h2 tabindex="-1" aria-live="polite">
               {plural(app.results.length, 'party', 'parties')} in this area<span class="sub">{dayLabel}</span>
@@ -305,6 +354,8 @@
         />
       {:else if app.selectedVenue}
         <VenueView venue={app.selectedVenue} />
+      {:else if app.planB}
+        <PlanBList onopen={openFromList} />
       {:else if !listVisible}
         <!-- The list is only built once the sheet opens: rendering 300+ cards up front
            costs ~1 s of main thread on a mid-range phone. -->

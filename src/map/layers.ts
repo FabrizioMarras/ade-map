@@ -130,6 +130,35 @@ export function addAppLayers(map: MlMap, theme: 'light' | 'dark') {
     },
   });
 
+  // Plan B: walking radius (soft circle) and its starting point.
+  map.addSource('planb', { type: 'geojson', data: empty });
+  map.addLayer({
+    id: 'planb-fill',
+    type: 'fill',
+    source: 'planb',
+    filter: ['==', ['geometry-type'], 'Polygon'],
+    paint: { 'fill-color': '#2f7cff', 'fill-opacity': theme === 'dark' ? 0.1 : 0.07 },
+  });
+  map.addLayer({
+    id: 'planb-line',
+    type: 'line',
+    source: 'planb',
+    filter: ['==', ['geometry-type'], 'Polygon'],
+    paint: { 'line-color': '#2f7cff', 'line-width': 1.5, 'line-opacity': 0.6, 'line-dasharray': [3, 2] },
+  });
+  map.addLayer({
+    id: 'planb-origin',
+    type: 'circle',
+    source: 'planb',
+    filter: ['==', ['geometry-type'], 'Point'],
+    paint: {
+      'circle-radius': 6,
+      'circle-color': '#2f7cff',
+      'circle-stroke-color': '#ffffff',
+      'circle-stroke-width': 2,
+    },
+  });
+
   map.addSource('venues', { type: 'geojson', data: empty });
   map.addLayer({
     id: 'pins',
@@ -244,7 +273,16 @@ export const PULSE_LAYERS = [
   'pulse-labels',
 ];
 /** Normal-map layers hidden while Pulse is on. */
-export const NORMAL_LAYERS = ['pins', 'pin-count', 'pin-labels', 'area-fill', 'area-line'];
+export const NORMAL_LAYERS = [
+  'pins',
+  'pin-count',
+  'pin-labels',
+  'area-fill',
+  'area-line',
+  'planb-fill',
+  'planb-line',
+  'planb-origin',
+];
 
 const P = {
   idle: '#4a4a52',

@@ -66,6 +66,7 @@
           oninput={() => {
             focusValue = null;
             if (app.selectedEventId || app.selectedVenueId || app.chooser) app.close();
+            if (app.planB) app.closePlanB();
           }}
         />
         {#if app.query}
@@ -88,7 +89,14 @@
     </div>
     <div class="row">
       {#if festival}
-        <button class="now" aria-pressed={app.nowMode} onclick={() => app.setNowMode(!app.nowMode)}>
+        <button
+          class="now"
+          aria-pressed={app.nowMode}
+          onclick={() => {
+            app.closePlanB();
+            app.setNowMode(!app.nowMode);
+          }}
+        >
           <span class="dot"></span>Now
         </button>
       {/if}

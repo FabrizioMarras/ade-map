@@ -8,9 +8,11 @@
     onlocate: (p: LngLat) => void;
     onfit: () => void;
     onmessage: (msg: string) => void;
+    onplanb: () => void;
+    planBLocating?: boolean;
   }
 
-  let { bottom, onlocate, onfit, onmessage }: Props = $props();
+  let { bottom, onlocate, onfit, onmessage, onplanb, planBLocating = false }: Props = $props();
   let locating = $state(false);
 
   function locate() {
@@ -52,7 +54,12 @@
   </div>
 {/if}
 
-<div class="stack" class:wide={app.wide} style:bottom="{bottom + 12}px">
+<div
+  class="stack"
+  class:wide={app.wide}
+  style:bottom="{bottom + 12}px"
+  style:--stack-bottom="{bottom + 12}px"
+>
   <button
     class="ctl"
     class:on={app.pulseOn}
@@ -64,6 +71,17 @@
     <Icon name="pulse" />
   </button>
   {#if !app.pulseOn}
+    <button
+      class="ctl planb"
+      class:on={!!app.planB}
+      aria-pressed={!!app.planB}
+      aria-busy={planBLocating}
+      aria-label={app.planB ? 'Close Plan B' : 'Plan B: parties on now within walking distance'}
+      title="Plan B"
+      onclick={onplanb}
+    >
+      <span>Plan<br />B</span>
+    </button>
     <button
       class="ctl"
       class:on={!!app.drawMode}
@@ -92,6 +110,11 @@
     z-index: 12;
     display: flex;
     flex-direction: column;
+    /* On short screens the buttons flow into a second column (to the left) instead of
+       running into the top bar. */
+    flex-wrap: wrap-reverse;
+    align-content: flex-start;
+    max-height: calc(100dvh - var(--stack-bottom, 0px) - var(--safe-top) - 140px);
     gap: 8px;
     transition: bottom 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
@@ -104,6 +127,15 @@
     border-radius: 12px;
     background: var(--surface);
     box-shadow: var(--shadow);
+  }
+  .planb span {
+    font: 700 12px/1 var(--font-display);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-align: center;
+  }
+  .ctl[aria-busy='true'] span {
+    opacity: 0.5;
   }
   .ctl.on {
     background: var(--accent);

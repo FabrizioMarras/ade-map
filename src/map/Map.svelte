@@ -7,6 +7,7 @@
   import { app } from '../lib/store.svelte';
   import { loadStyle } from './basemap';
   import { Lasso } from './Lasso';
+  import { WALK_M_PER_MIN, circlePolygon } from '../lib/planb';
   import { computeState, pulseEvents } from '../lib/pulse';
   import {
     COLORS,
@@ -269,6 +270,33 @@
     );
   });
 
+  // Plan B radius and starting point (re-applied after a style switch).
+  $effect(() => {
+    const pb = app.planB;
+    if (!map || !styleReady) return;
+    (map.getSource('planb') as GeoJSONSource | undefined)?.setData({
+      type: 'FeatureCollection',
+      features: pb
+        ? [
+            {
+              type: 'Feature',
+              properties: {},
+              geometry: {
+                type: 'Polygon',
+                coordinates: [circlePolygon(pb.origin, pb.minutes * WALK_M_PER_MIN)],
+              },
+            },
+            { type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: pb.origin } },
+          ]
+        : [],
+    });
+  });
+
+  export function getCenter(): LngLat | null {
+    const c = map?.getCenter();
+    return c ? [c.lng, c.lat] : null;
+  }
+
   // Push pin data whenever the result set or selection changes.
   $effect(() => {
     const data = pinsGeoJSON(
@@ -399,6 +427,11 @@
     bottom: var(--ctrl-bottom, 0px);
     left: var(--ctrl-left, 0px);
     transition: bottom 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  /* Keep the credits clear of the control column on the right. */
+  .map :global(.maplibregl-ctrl-bottom-left .maplibregl-ctrl-attrib) {
+    box-sizing: border-box;
+    max-width: calc(100vw - var(--ctrl-left, 0px) - 10px - 76px); /* 10px: its own left margin */
   }
   :global(.maplibregl-ctrl-attrib) {
     font-size: 11px;
