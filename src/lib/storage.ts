@@ -20,6 +20,4 @@ export const KEYS = {
   favs: 'ade2026.favs.v1',
   theme: 'ade2026.theme.v1',
   afterMidnight: 'ade2026.afterMidnight.v1',
-  /** Optional name shown on lists you share ("Fabrizio's list"). */
-  name: 'ade2026.name.v1',
 };

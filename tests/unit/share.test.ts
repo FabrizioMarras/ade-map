@@ -6,7 +6,6 @@ import {
   encodeList,
   eventLink,
   listLink,
-  listTitle,
   mergeIntoList,
   venueLink,
 } from '../../src/lib/share';
@@ -40,17 +39,22 @@ describe('links', () => {
     expect(venueLink('1576', BASE)).toBe(BASE + '#v=1576');
   });
 
-  it('builds a list link that parses back, with the name', () => {
-    const { url, included } = listLink([2843412, 2861728], 'Fabrizio', BASE);
+  it('builds a list link without a name that parses back', () => {
+    const { url, included } = listLink([2843412, 2861728], BASE);
     expect(included).toBe(2);
-    const h = parseHash(new URL(url).hash);
-    expect(h.list).toEqual([2843412, 2861728]);
-    expect(h.by).toBe('Fabrizio');
+    expect(url).toMatch(/#list=[A-Za-z0-9_-]+$/);
+    expect(parseHash(new URL(url).hash).list).toEqual([2843412, 2861728]);
+  });
+
+  it('still opens old links that carry a name, ignoring it', () => {
+    const h = parseHash(`#list=${encodeList([2843412])}&by=Fabrizio`);
+    expect(h.list).toEqual([2843412]);
+    expect(h).not.toHaveProperty('by');
   });
 
   it('stays under 2,000 characters by cutting very long lists', () => {
     const all = data.events.map((e) => e.id);
-    const { url, included } = listLink(all, 'Fabrizio', BASE);
+    const { url, included } = listLink(all, BASE);
     expect(url.length).toBeLessThan(MAX_URL);
     expect(included).toBeGreaterThan(100);
     expect(included).toBeLessThan(all.length);
@@ -61,7 +65,6 @@ describe('links', () => {
     expect(
       listLink(
         data.events.slice(0, 30).map((e) => e.id),
-        'Fabrizio',
         BASE,
       ).url.length,
     ).toBeLessThan(400);
@@ -74,14 +77,5 @@ describe('merging a shared list', () => {
     const { ids, added } = mergeIntoList([1, 2], [2, 3, 999, 3], known);
     expect([...ids]).toEqual([1, 2, 3]);
     expect(added).toBe(1);
-  });
-});
-
-describe('listTitle', () => {
-  it('names the list', () => {
-    expect(listTitle('Fabrizio')).toBe("Fabrizio's list");
-    expect(listTitle('James')).toBe("James' list");
-    expect(listTitle('  ')).toBe('Shared list');
-    expect(listTitle()).toBe('Shared list');
   });
 });

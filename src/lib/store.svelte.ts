@@ -61,7 +61,7 @@ class AppState {
   }
 
   /** A list someone shared with a `#list=` link: viewed until saved, closed or a day is picked. */
-  sharedList = $state.raw<{ ids: number[]; by?: string } | null>(null);
+  sharedList = $state.raw<{ ids: number[] } | null>(null);
   /** The "Save to my list / Just look" banner is showing. */
   sharedBanner = $state(false);
 
@@ -223,7 +223,7 @@ class AppState {
     this.dayFromLink = !h.day;
     if (h.list?.length) {
       const known = this.sharedList?.ids.join() === h.list.join();
-      this.sharedList = { ids: h.list, by: h.by };
+      this.sharedList = { ids: h.list };
       if (!known) this.sharedBanner = true;
     } else this.sharedList = null;
     this.pulseOn = h.pulse !== undefined;
@@ -264,7 +264,6 @@ class AppState {
       pulse: this.pulseOn ? this.pulseT : undefined,
       event: this.selectedEventId ?? undefined,
       list: this.sharedList?.ids,
-      by: this.sharedList?.by,
     });
     if (hash === location.hash) return;
     if (push) history.pushState({ app: true }, '', hash);

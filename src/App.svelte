@@ -13,7 +13,6 @@
   import MapControls from './ui/MapControls.svelte';
   import PlanBList from './ui/PlanBList.svelte';
   import ManualLink from './ui/ManualLink.svelte';
-  import { listTitle } from './lib/share';
   import PulseDeck from './ui/PulseDeck.svelte';
   import { WALK_M_PER_MIN, circlePolygon } from './lib/planb';
   import { inValidBounds } from './lib/geo';
@@ -334,7 +333,7 @@
             <button class="btn" onclick={() => app.closePlanB()}>Close</button>
           {:else if app.sharedList}
             <h2 tabindex="-1" aria-live="polite">
-              {listTitle(app.sharedList.by)}<span class="sub"
+              Shared list<span class="sub"
                 >{plural(app.results.length, 'party', 'parties')} · shared with you</span
               >
             </h2>
@@ -390,11 +389,7 @@
         {#if app.sharedBanner}
           <div class="shared-banner" role="region" aria-label="Shared list">
             <p>
-              <strong>{listTitle(app.sharedList.by)}</strong> · {plural(
-                app.results.length,
-                'party',
-                'parties',
-              )}
+              <strong>Shared list</strong> · {plural(app.results.length, 'party', 'parties')}
             </p>
             <div class="actions">
               <button

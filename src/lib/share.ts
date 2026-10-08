@@ -1,6 +1,7 @@
 /**
- * Shareable links: `#e=<id>` (party), `#v=<id>` (venue) and `#list=<payload>&by=<name>`
- * (a My list). The list payload is base64url of the event ids in base36, comma-separated.
+ * Shareable links: `#e=<id>` (party), `#v=<id>` (venue) and `#list=<payload>` (a My list).
+ * The list payload is base64url of the event ids in base36, comma-separated. Lists carry no
+ * name (older links with `&by=` still open; the name is ignored).
  */
 
 /** Shared-list links must stay under this many characters (old browsers, chat apps). */
@@ -41,17 +42,12 @@ export const eventLink = (id: number, base = appBase()) => `${base}#e=${id}`;
 export const venueLink = (id: string, base = appBase()) => `${base}#v=${encodeURIComponent(id)}`;
 
 /**
- * Link to a list of events, optionally with the sharer's name. Ids are sorted by start
- * (pass them in that order); if the link would exceed MAX_URL, the list is cut and
- * `included` says how many made it.
+ * Link to a list of events (pass ids sorted by start). If the link would exceed MAX_URL, the
+ * list is cut and `included` says how many made it.
  */
-export function listLink(ids: number[], by = '', base = appBase()): { url: string; included: number } {
-  const name = by.trim().slice(0, 40);
-  const make = (n: number) => {
-    const p = new URLSearchParams({ list: encodeList(ids.slice(0, n)) });
-    if (name) p.set('by', name);
-    return `${base}#${p.toString()}`;
-  };
+export function listLink(ids: number[], base = appBase()): { url: string; included: number } {
+  const make = (n: number) =>
+    `${base}#${new URLSearchParams({ list: encodeList(ids.slice(0, n)) }).toString()}`;
   let n = ids.length;
   let url = make(n);
   while (url.length >= MAX_URL && n > 1) {
@@ -71,13 +67,6 @@ export function mergeIntoList(
   const before = ids.size;
   for (const id of incoming) if (known(id)) ids.add(id);
   return { ids, added: ids.size - before };
-}
-
-/** "Fabrizio's list" / "Shared list" */
-export function listTitle(by?: string): string {
-  const name = by?.trim();
-  if (!name) return 'Shared list';
-  return name.endsWith('s') ? `${name}' list` : `${name}'s list`;
 }
 
 /** True where the system share sheet exists (most phones); the button then says "Share". */

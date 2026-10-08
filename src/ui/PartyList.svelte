@@ -2,7 +2,7 @@
   import { activeFilterCount, applyQuery } from '../lib/filter';
   import { plural } from '../lib/format';
   import { clashes, exportFavs, importFavs } from '../lib/favs';
-  import { listLink, listTitle } from '../lib/share';
+  import { listLink } from '../lib/share';
   import { groupByDay, groupByHour, nextDay, type Group } from '../lib/group';
   import { matchingArtists, search, tokens } from '../lib/search';
   import { KEYS, readJSON, writeJSON } from '../lib/storage';
@@ -61,41 +61,44 @@
     return parts.join(' · ') || undefined;
   }
 
-  async function doExport() {
-    const blob = exportFavs(app.favs);
-    try {
-      await navigator.clipboard.writeText(blob);
-      onmessage(`Copied ${plural(app.favs.size, 'favourite')} to the clipboard`);
-    } catch {
-      window.prompt('Copy your list:', blob);
-    }
-  }
-
-  /** Share My list as a link; asks once for an optional name ("Fabrizio's list"). */
-  async function shareList() {
-    let name = readJSON<string | null>(KEYS.name, null);
-    if (name === null) {
-      const typed = window.prompt('Your name, shown to people you share your list with (optional):', '');
-      if (typed === null) return; // cancelled
-      name = typed.trim().slice(0, 40);
-      writeJSON(KEYS.name, name);
-    }
+  /**
+   * Share My list as a link. No dialogs or awaits before app.share: the share sheet needs the
+   * tap's user activation, so it must be called straight from the click.
+   */
+  function shareList() {
     const ids = [...app.listEvents].sort((a, b) => a.startMs - b.startMs).map((e) => e.id);
-    const { url, included } = listLink(ids, name);
-    await app.share(url, listTitle(name));
+    const { url, included } = listLink(ids);
+    void app.share(url, 'Shared list');
     if (included < ids.length) {
       onmessage(`Link holds the first ${included} of ${ids.length} parties (link length limit)`);
     }
   }
 
+  /** Export / Import as inline panels (no browser pop-ups). */
+  let transfer = $state<'export' | 'import' | null>(null);
+  let pasted = $state('');
+  let exportField: HTMLInputElement | undefined = $state();
+  const exportText = $derived(exportFavs(app.favs));
+
+  async function copyExport() {
+    exportField?.select();
+    try {
+      await navigator.clipboard.writeText(exportText);
+      onmessage(`Copied ${plural(app.favs.size, 'favourite')} to the clipboard`);
+    } catch {
+      onmessage('Select the text and copy it');
+    }
+  }
+
   function doImport() {
-    const text = window.prompt('Paste an exported list (ADE2026-FAVS:…)');
-    if (!text || !app.data) return;
-    const ids = importFavs(text, (id) => app.data!.eventsById.has(id));
+    if (!app.data) return;
+    const ids = importFavs(pasted, (id) => app.data!.eventsById.has(id));
     if (!ids.length) return onmessage('No parties found in that text');
     const before = app.favs.size;
     app.setFavs(new Set([...app.favs, ...ids]));
     onmessage(`Added ${plural(app.favs.size - before, 'party', 'parties')} to your list`);
+    pasted = '';
+    transfer = null;
   }
 
   function toggleAfterMidnight() {
@@ -152,9 +155,42 @@
 {#if favMode}
   <div class="actions transfer">
     <button class="btn primary" disabled={!app.favs.size} onclick={shareList}>Share list</button>
-    <button class="btn" disabled={!app.favs.size} onclick={doExport}>Export list</button>
-    <button class="btn" onclick={doImport}>Import list</button>
+    <button
+      class="btn"
+      disabled={!app.favs.size}
+      aria-expanded={transfer === 'export'}
+      onclick={() => (transfer = transfer === 'export' ? null : 'export')}>Export list</button
+    >
+    <button
+      class="btn"
+      aria-expanded={transfer === 'import'}
+      onclick={() => (transfer = transfer === 'import' ? null : 'import')}>Import list</button
+    >
   </div>
+  {#if transfer === 'export'}
+    <div class="transfer-panel">
+      <label for="export-text">Your list as text — copy it to another device and import it there</label>
+      <div class="row">
+        <input
+          id="export-text"
+          bind:this={exportField}
+          readonly
+          value={exportText}
+          onfocus={(e) => e.currentTarget.select()}
+        />
+        <button class="btn primary" onclick={copyExport}>Copy</button>
+      </div>
+    </div>
+  {:else if transfer === 'import'}
+    <div class="transfer-panel">
+      <label for="import-text">Paste an exported list (ADE2026-FAVS:…) or party links</label>
+      <textarea id="import-text" rows="3" bind:value={pasted} placeholder="ADE2026-FAVS:…"></textarea>
+      <div class="row end">
+        <button class="btn" onclick={() => ((transfer = null), (pasted = ''))}>Cancel</button>
+        <button class="btn primary" disabled={!pasted.trim()} onclick={doImport}>Import</button>
+      </div>
+    </div>
+  {/if}
 {/if}
 
 {#if singleDay && nextLabel}
@@ -187,6 +223,39 @@
     text-transform: none;
     letter-spacing: 0;
     margin-left: 6px;
+  }
+  .transfer-panel {
+    margin: 0 16px 12px;
+    padding: 12px;
+    border-radius: var(--radius);
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .transfer-panel label {
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .transfer-panel .row {
+    display: flex;
+    gap: 8px;
+  }
+  .transfer-panel .row.end {
+    justify-content: flex-end;
+  }
+  .transfer-panel input,
+  .transfer-panel textarea {
+    flex: 1;
+    min-width: 0;
+    min-height: var(--tap);
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--fg);
+    font: 15px/1.3 var(--font-body);
   }
   .transfer {
     justify-content: center;
