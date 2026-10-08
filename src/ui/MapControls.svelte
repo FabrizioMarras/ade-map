@@ -114,7 +114,7 @@
        running into the top bar. */
     flex-wrap: wrap-reverse;
     align-content: flex-start;
-    max-height: calc(100dvh - var(--stack-bottom, 0px) - var(--safe-top) - 156px);
+    max-height: calc(100dvh - var(--stack-bottom, 0px) - var(--safe-top) - 140px);
     gap: 8px;
     transition: bottom 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
@@ -127,7 +127,7 @@
   .hint {
     position: fixed;
     left: 50%;
-    top: calc(var(--safe-top) + 140px);
+    top: calc(var(--safe-top) + 124px);
     transform: translateX(-50%);
     z-index: 14;
     display: flex;

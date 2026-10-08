@@ -58,7 +58,7 @@ test('a shared list opens with a banner and can be saved to My list', async ({ p
   // Reloading the link shows the banner again; saving merges into My list.
   await page.reload();
   await page.getByRole('button', { name: 'Save to my list' }).click();
-  await expect(page.getByRole('button', { name: 'My list (3)' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: 'My list (3)' })).toHaveAttribute('aria-current', 'page');
   await expect(page.getByRole('status').filter({ hasText: 'Added 3 parties' })).toBeVisible();
 
   // Saving the same list again adds nothing (no duplicates).

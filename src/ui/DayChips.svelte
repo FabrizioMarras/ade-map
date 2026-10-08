@@ -3,12 +3,11 @@
   import { app } from '../lib/store.svelte';
   import { DAYS } from '../lib/time';
 
-  // My list first (compact "★ 3"), then the days, then All.
-  const chips = $derived<{ key: DayScope; label: string }[]>([
-    { key: 'fav', label: 'My list' },
+  // The days, then All. (My list is a tab in the bottom navigation.)
+  const chips: { key: DayScope; label: string }[] = [
     ...DAYS.map((d) => ({ key: d.key, label: d.short })),
     { key: 'all', label: 'All' },
-  ]);
+  ];
 
   let row: HTMLDivElement | undefined = $state();
 
@@ -31,23 +30,14 @@
   {#each chips as c (c.key)}
     <button
       class="day-chip"
-      class:fav={c.key === 'fav'}
       aria-pressed={!app.nowMode && !app.sharedList && app.day === c.key}
-      aria-label={c.key === 'fav' ? `My list (${app.favs.size})` : undefined}
-      title={c.key === 'fav' ? 'My list' : undefined}
       onclick={() => {
         app.closePlanB();
         app.nowMode = false;
         app.setDay(c.key);
       }}
     >
-      {#if c.key === 'fav'}
-        <span aria-hidden="true"
-          >★{#if app.favs.size}<span class="n tnum">{app.favs.size}</span>{/if}</span
-        >
-      {:else}
-        {c.label}
-      {/if}
+      {c.label}
     </button>
   {/each}
 </div>

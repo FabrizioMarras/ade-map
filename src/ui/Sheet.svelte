@@ -12,6 +12,8 @@
     top?: Snippet;
     /** Height left visible when collapsed. */
     peek?: number;
+    /** Space kept free below the sheet (the bottom tab bar), in px. */
+    inset?: number;
     children: Snippet;
   }
 
@@ -23,6 +25,7 @@
     header,
     top,
     peek = 56,
+    inset = 0,
     children,
   }: Props = $props();
 
@@ -36,9 +39,9 @@
   }
 
   /** Fully expanded, the sheet stops below the search row and the brand badge (TOP_RESERVE). */
-  const TOP_RESERVE = 94;
+  const TOP_RESERVE = 78;
   let safeTop = $state(0);
-  const sheetH = $derived(Math.round(vh - safeTop - TOP_RESERVE));
+  const sheetH = $derived(Math.round(vh - safeTop - TOP_RESERVE - inset));
 
   $effect(() => {
     // env(safe-area-inset-top) can only be read through a styled element.
@@ -109,6 +112,7 @@
   class:dragging={dragY !== null}
   style:--sheet-h="{sheetH}px"
   style:transform={wide ? undefined : `translateY(${offset}px)`}
+  style:bottom={wide ? undefined : `${inset}px`}
   aria-label="Parties"
 >
   <div

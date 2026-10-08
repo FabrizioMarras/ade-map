@@ -1,26 +1,21 @@
 import { expect, test } from '@playwright/test';
 import { ready } from './helpers';
 
-test('the ? button opens the map guide; hidden while a party is open', async ({ page }) => {
+test('More → How to use the app opens the map guide, and its back link returns to the map', async ({
+  page,
+}) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.goto('./#d=23&e=2892764');
-  await ready(page);
-  const help = page.getByLabel('How to use the app');
-  await expect(help).toBeHidden();
-
   await page.goto('./#d=23');
   await ready(page);
-  await help.click();
+  await page.getByRole('button', { name: 'More', exact: true }).click();
+  await page.getByRole('link', { name: /^How to use the app/ }).click();
   await expect(page).toHaveURL(/\/help\/$/);
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   await expect(page.getByRole('heading', { level: 2 }).first()).toHaveText(/Find a party/);
-  // Back to the map, and the guide is also linked from the credits footer.
   await page.getByRole('link', { name: 'Map', exact: true }).click();
   await ready(page);
-  await page.getByRole('button', { name: 'Expand panel' }).click();
-  await page.locator('footer.credits').getByRole('link', { name: 'How to use the app' }).click();
-  await expect(page).toHaveURL(/\/help\/$/);
+  await expect(page.getByRole('navigation', { name: 'Main' })).toBeVisible();
   expect(errors).toEqual([]);
 });
 

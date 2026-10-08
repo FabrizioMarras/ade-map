@@ -150,14 +150,6 @@
   letter-spacing: 0.02em;
   box-shadow: 0 1px 4px rgb(0 0 0 / 0.12);
 }
-.day-chip.fav {
-  min-width: 44px;
-  padding: 0 10px;
-}
-.day-chip .n {
-  margin-left: 5px;
-  font-size: 15px;
-}
 .day-chip[aria-pressed='true'] {
   background: var(--accent);
   color: var(--accent-ink);

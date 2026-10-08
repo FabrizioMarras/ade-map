@@ -9,8 +9,6 @@
 
   const nFilters = $derived(activeFilterCount(app.filters));
   const festival = $derived(isFestivalTime(app.now));
-  /** The Insights link and the guide button step aside (space kept) while a party or venue is open. */
-  const detailOpen = $derived(!!(app.selectedEventId || app.selectedVenueId));
   let input: HTMLInputElement | undefined = $state();
   /** The query when the box gained focus, while the old search is still to be replaced. */
   let focusValue: string | null = null;
@@ -18,10 +16,6 @@
   /** Select the previous search so typing replaces it — but never text typed since the tap. */
   function selectOld() {
     if (input && focusValue && input.value === focusValue) input.setSelectionRange(0, input.value.length);
-  }
-
-  function cycleTheme() {
-    app.setTheme(app.theme === 'dark' ? 'light' : 'dark');
   }
 </script>
 
@@ -41,16 +35,6 @@
       </div>
     </div>
   {:else}
-    <!-- Insights link: tiny, above the search bar; hidden (space kept) while a party or venue is open. -->
-    <a
-      class="insights-link"
-      href="./insights/"
-      class:hidden={detailOpen}
-      aria-hidden={detailOpen ? 'true' : undefined}
-      tabindex={detailOpen ? -1 : undefined}
-    >
-      Insights · the festival by hour, area and genre <span aria-hidden="true">→</span>
-    </a>
     <div class="row">
       <label class="search">
         <Icon name="search" size={18} />
@@ -96,21 +80,6 @@
         <Icon name="filter" />
         {#if nFilters}<span class="badge">{nFilters}</span>{/if}
       </button>
-      <button
-        class="round-btn"
-        aria-label={app.theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-        onclick={cycleTheme}
-      >
-        <Icon name={app.theme === 'dark' ? 'sun' : 'moon'} />
-      </button>
-      <a
-        class="round-btn"
-        class:hidden={detailOpen}
-        href="./help/"
-        aria-label="How to use the app"
-        aria-hidden={detailOpen ? 'true' : undefined}
-        tabindex={detailOpen ? -1 : undefined}><span aria-hidden="true">?</span></a
-      >
     </div>
     <div class="row">
       {#if festival}
@@ -138,7 +107,7 @@
     right: 0;
     z-index: 15;
     /* 22px: room for the brand badge in the top-right corner (Brand.svelte). */
-    padding: calc(var(--safe-top) + 2px) 10px 0;
+    padding: calc(var(--safe-top) + 22px) 10px 0;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -155,35 +124,6 @@
     align-items: center;
     pointer-events: auto;
     min-width: 0;
-  }
-  /* Tiny link row (≥32px tall touch target). Clear of the © badge on the right. */
-  .insights-link {
-    pointer-events: auto;
-    align-self: flex-start;
-    display: inline-flex;
-    align-items: center;
-    max-width: calc(100% - 150px);
-    min-height: 32px;
-    margin: 0 0 -4px 4px;
-    padding: 0 2px;
-    font: 700 12px/1 var(--font-display);
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    color: var(--fg);
-    text-decoration: underline;
-    text-decoration-color: var(--accent);
-    text-decoration-thickness: 2px;
-    text-underline-offset: 3px;
-  }
-  :global(:root[data-theme='dark']) .insights-link {
-    color: var(--accent);
-    text-decoration: none;
-  }
-  .hidden {
-    visibility: hidden;
   }
   .pulse-card {
     pointer-events: auto;

@@ -26,6 +26,8 @@
   import PartyList from './ui/PartyList.svelte';
   import VenueList from './ui/VenueList.svelte';
   import TopBar from './ui/TopBar.svelte';
+  import NavTabs from './ui/NavTabs.svelte';
+  import MoreSheet from './ui/MoreSheet.svelte';
   import Icon from './ui/Icon.svelte';
   import Sheet from './ui/Sheet.svelte';
   import VenueChooser from './ui/VenueChooser.svelte';
@@ -53,12 +55,16 @@
   const bins = $derived(histogram(pulseData));
   let deckHeight = $state(0);
   const sheetShown = $derived(!app.pulseOn || !!app.selectedVenue || !!app.selectedEvent);
+  // Bottom navigation: a tab bar on phones (not in Pulse, which has its own deck).
+  const tabBar = $derived(!app.wide && !app.pulseOn);
+  let tabBarHeight = $state(0);
+  const tabInset = $derived(tabBar ? tabBarHeight : 0);
   const bottomCover = $derived(
-    app.pulseOn && !(sheetShown && !app.wide) ? deckHeight : app.wide ? 0 : sheetVisible,
+    app.pulseOn && !(sheetShown && !app.wide) ? deckHeight : app.wide ? 0 : sheetVisible + tabInset,
   );
 
   const padding = $derived({
-    top: 150, // top bar incl. the Insights link row
+    top: 134, // top bar incl. the brand slot
     bottom: bottomCover,
     left: app.wide && sheetShown ? 400 : 0, // the side panel (hidden in Pulse)
     right: 56, // the map control stack
@@ -76,6 +82,15 @@
 
   onMount(() => {
     load();
+
+    // Chrome offers installation through an event; keep it for the More sheet.
+    const onInstallable = (e: Event) => {
+      e.preventDefault();
+      app.installPrompt = e as typeof app.installPrompt;
+    };
+    const onInstalled = () => (app.installPrompt = null);
+    window.addEventListener('beforeinstallprompt', onInstallable);
+    window.addEventListener('appinstalled', onInstalled);
 
     // Offer a reload when a newer programme is published while the app stays open.
     const check = async () => {
@@ -97,6 +112,8 @@
     return () => {
       clearInterval(timer);
       document.removeEventListener('visibilitychange', check);
+      window.removeEventListener('beforeinstallprompt', onInstallable);
+      window.removeEventListener('appinstalled', onInstalled);
     };
   });
 
@@ -295,7 +312,8 @@
 
   function onkeydown(e: KeyboardEvent) {
     if (e.key !== 'Escape') return;
-    if (app.drawMode) app.drawMode = null;
+    if (app.moreOpen) app.moreOpen = false;
+    else if (app.drawMode) app.drawMode = null;
     else if (app.selectedEventId || app.selectedVenueId || app.chooser) app.back();
     else if (app.artist) app.closeArtist();
     else if (app.nightPlan) app.closeNightPlan();
@@ -343,9 +361,11 @@
       bind:snap={app.sheet}
       bind:visible={sheetVisible}
       wide={app.wide}
-      peek={app.pulseOn ? 56 : 82}
+      peek={app.pulseOn ? 56 : 90}
+      inset={tabInset}
     >
       {#snippet top()}
+        {#if app.wide && !app.pulseOn}<NavTabs variant="row" />{/if}
         {#if !app.pulseOn && app.data}<Sparkline {bins} />{/if}
       {/snippet}
       {#snippet header()}
@@ -478,27 +498,14 @@
       {:else}
         <PartyList onopen={openFromList} onmessage={(text) => (toast = { text })} />
       {/if}
-
-      {#if app.data && !app.selectedEvent && !app.selectedVenue && !app.chooser}
-        <footer class="credits">
-          <p>Programme as of {asOf} · updated automatically from the ADE site</p>
-          <p>
-            Data © Amsterdam Dance Event (personal planning only) · Geocoding: PDOK Locatieserver · Map data ©
-            <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>
-            contributors · Tiles:
-            <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>
-          </p>
-          <p>
-            <a href="./insights/">Insights</a> — the festival by hour, neighbourhood and genre, for organisers
-          </p>
-          <p><a href="./help/">How to use the app</a> — pins, filters, My list, Plan B and Pulse explained</p>
-          <p class="copyright">
-            © {new Date().getFullYear()} FM Consulting ·
-            <a href="https://fabriziomarras.com" target="_blank" rel="noopener">fabriziomarras.com</a>
-          </p>
-        </footer>
-      {/if}
     </Sheet>
+  {/if}
+
+  {#if tabBar}
+    <NavTabs variant="bar" bind:height={tabBarHeight} />
+  {/if}
+  {#if app.moreOpen && !app.pulseOn}
+    <MoreSheet bottom={tabInset} {asOf} />
   {/if}
 </div>
 
@@ -515,20 +522,6 @@
   }
   .shared-banner .actions {
     padding: 10px 0;
-  }
-  .credits {
-    padding: 16px;
-    font-size: 13px;
-    color: var(--muted);
-    border-top: 1px solid var(--line);
-  }
-  .credits p {
-    margin: 0 0 6px;
-  }
-  .credits .copyright {
-    margin-top: 10px;
-    color: var(--fg);
-    font-weight: 600;
   }
   .seg {
     display: flex;

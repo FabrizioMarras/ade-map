@@ -1,13 +1,16 @@
 import { expect, test } from '@playwright/test';
 import { ready } from './helpers';
 
-test('insights page: reachable from the footer, six charts with sentences and tables', async ({ page }) => {
+test('insights page: reachable from More, six charts with sentences and tables', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('./#d=23');
   await ready(page);
-  await page.getByRole('button', { name: 'Expand panel' }).click();
-  await page.getByRole('link', { name: 'Insights', exact: true }).click();
+  await page.getByRole('button', { name: 'More', exact: true }).click();
+  await page
+    .getByRole('dialog', { name: 'More' })
+    .getByRole('link', { name: /^Insights/ })
+    .click();
   await expect(page).toHaveURL(/\/insights\/$/);
 
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Insights');
@@ -24,22 +27,13 @@ test('insights page: reachable from the footer, six charts with sentences and ta
   expect(errors).toEqual([]);
 });
 
-test('top-bar insights link: opens the insights page, hidden while a party or venue is open', async ({
-  page,
-}) => {
+test('More → Insights opens the insights page with a chart', async ({ page }) => {
   await page.goto('./#d=23');
   await ready(page);
-  const link = page.getByRole('link', { name: /^Insights · the festival by hour, area and genre/ });
+  await page.getByRole('button', { name: 'More', exact: true }).click();
+  const link = page.getByRole('link', { name: /^Insights The festival by hour, area and genre/ });
   await expect(link).toBeVisible();
-  const box = (await link.boundingBox())!;
-  expect(box.height).toBeGreaterThanOrEqual(32);
-
-  await page.goto('./#d=23&e=2892764');
-  await ready(page);
-  await expect(page.locator('a.insights-link')).toBeHidden();
-
-  await page.goto('./#d=23');
-  await ready(page);
+  expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(44);
   await link.click();
   await expect(page).toHaveURL(/\/insights\/$/);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Insights');

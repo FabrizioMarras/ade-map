@@ -41,6 +41,12 @@ class AppState {
   /** Venue ids under an ambiguous tap; shown as a chooser. */
   chooser = $state<string[] | null>(null);
   sheet = $state<SheetSnap>('collapsed');
+  /** The More sheet (bottom navigation) is open. */
+  moreOpen = $state(false);
+  /** The last day (or All) shown in the Parties list, for the Parties tab after My list. */
+  listDay = $state<DayScope>(defaultDay());
+  /** Chrome's install prompt, when the browser offers one (beforeinstallprompt). */
+  installPrompt = $state.raw<(Event & { prompt: () => Promise<void> }) | null>(null);
   wide = $state(typeof matchMedia !== 'undefined' && matchMedia('(min-width: 900px)').matches);
 
   query = $state('');
@@ -351,6 +357,7 @@ class AppState {
   }
 
   setDay(day: DayScope) {
+    if (day !== 'fav') this.listDay = day;
     this.nightPlan = null;
     this.day = day;
     this.sharedList = null;
@@ -511,6 +518,54 @@ class AppState {
 
   clearFilters() {
     this.filters = emptyFilters();
+  }
+
+  /**
+   * The bottom-navigation tab that reflects what is on screen: More while its sheet is open,
+   * My list when favourites are shown, Parties when a list is open, otherwise Map.
+   */
+  get tab(): 'map' | 'parties' | 'fav' | 'more' {
+    if (this.moreOpen) return 'more';
+    const favs = this.day === 'fav' && !this.nowMode && !this.sharedList;
+    const listOpen = this.wide || this.sheet !== 'collapsed';
+    if (favs && listOpen) return 'fav';
+    if (this.selectedEventId || this.selectedVenueId || this.chooser) return 'map';
+    return listOpen ? 'parties' : 'map';
+  }
+
+  /** Map tab: show the map; again while active, also clear the selection. */
+  showMap() {
+    const again = this.tab === 'map';
+    this.moreOpen = false;
+    if (again || this.wide) this.close();
+    if (!this.wide) this.sheet = 'collapsed';
+  }
+
+  /** Parties tab: the current day's list at half height. */
+  showParties() {
+    this.moreOpen = false;
+    this.close();
+    this.closePlanB();
+    this.nightPlan = null;
+    this.artistKey = null;
+    if (this.day === 'fav' || this.sharedList)
+      this.setDay(this.listDay === 'fav' ? defaultDay() : this.listDay);
+    this.listMode = 'parties';
+    if (!this.wide) this.sheet = 'half';
+  }
+
+  /** My list tab: favourites, with their actions at the top. */
+  showMyList() {
+    // Remember the day on screen (it may have come from a link) for the Parties tab.
+    if (this.day !== 'fav') this.listDay = this.day;
+    this.moreOpen = false;
+    this.close();
+    this.closePlanB();
+    this.artistKey = null;
+    this.nowMode = false;
+    this.setDay('fav');
+    this.listMode = 'parties';
+    if (!this.wide) this.sheet = 'half';
   }
 
   setTheme(pref: ThemePref) {

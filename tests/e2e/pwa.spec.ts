@@ -61,7 +61,8 @@ test('shows an error with retry when the programme fails to load', async ({ page
   fail = false;
   await page.getByRole('button', { name: 'Try again' }).click();
   await expect(page.locator('.sheet-head h2')).toHaveText(/Fri 23 · 335 parties/);
-  await expect(page.locator('.credits')).toContainText('Programme as of');
+  await page.getByRole('button', { name: 'More', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'More' })).toContainText('Programme as of');
 });
 
 test('keyboard: open a party from the list and go back with Escape', async ({ page }) => {

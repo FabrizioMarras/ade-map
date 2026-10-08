@@ -134,6 +134,52 @@
   }
 </script>
 
+<!-- My list: its actions as a button row at the top. -->
+{#if favMode}
+  <div class="actions transfer">
+    <button class="btn primary" disabled={!app.starredNights.length} onclick={() => app.openNightPlan()}
+      >Plan my night</button
+    >
+    <button class="btn" disabled={!app.favs.size} onclick={shareList}>Share list</button>
+    <button class="btn" disabled={!app.favs.size} onclick={exportCalendar}>Calendar (.ics)</button>
+    <button
+      class="btn"
+      disabled={!app.favs.size}
+      aria-expanded={transfer === 'export'}
+      onclick={() => (transfer = transfer === 'export' ? null : 'export')}>Export list</button
+    >
+    <button
+      class="btn"
+      aria-expanded={transfer === 'import'}
+      onclick={() => (transfer = transfer === 'import' ? null : 'import')}>Import list</button
+    >
+  </div>
+  {#if transfer === 'export'}
+    <div class="transfer-panel">
+      <label for="export-text">Your list as text — copy it to another device and import it there</label>
+      <div class="row">
+        <input
+          id="export-text"
+          bind:this={exportField}
+          readonly
+          value={exportText}
+          onfocus={(e) => e.currentTarget.select()}
+        />
+        <button class="btn primary" onclick={copyExport}>Copy</button>
+      </div>
+    </div>
+  {:else if transfer === 'import'}
+    <div class="transfer-panel">
+      <label for="import-text">Paste an exported list (ADE2026-FAVS:…) or party links</label>
+      <textarea id="import-text" rows="3" bind:value={pasted} placeholder="ADE2026-FAVS:…"></textarea>
+      <div class="row end">
+        <button class="btn" onclick={() => ((transfer = null), (pasted = ''))}>Cancel</button>
+        <button class="btn primary" disabled={!pasted.trim()} onclick={doImport}>Import</button>
+      </div>
+    </div>
+  {/if}
+{/if}
+
 {#if artists.length}
   <section class="artists" aria-label="Artists">
     <h3 class="hour">Artists</h3>
@@ -196,24 +242,6 @@
 {/if}
 
 {#if favMode}
-  <div class="actions transfer">
-    <button class="btn primary" disabled={!app.starredNights.length} onclick={() => app.openNightPlan()}
-      >Plan my night</button
-    >
-    <button class="btn" disabled={!app.favs.size} onclick={shareList}>Share list</button>
-    <button class="btn" disabled={!app.favs.size} onclick={exportCalendar}>Calendar (.ics)</button>
-    <button
-      class="btn"
-      disabled={!app.favs.size}
-      aria-expanded={transfer === 'export'}
-      onclick={() => (transfer = transfer === 'export' ? null : 'export')}>Export list</button
-    >
-    <button
-      class="btn"
-      aria-expanded={transfer === 'import'}
-      onclick={() => (transfer = transfer === 'import' ? null : 'import')}>Import list</button
-    >
-  </div>
   <div class="reminders">
     <label class="setting">
       <input
@@ -230,30 +258,6 @@
       miss them.
     </p>
   </div>
-  {#if transfer === 'export'}
-    <div class="transfer-panel">
-      <label for="export-text">Your list as text — copy it to another device and import it there</label>
-      <div class="row">
-        <input
-          id="export-text"
-          bind:this={exportField}
-          readonly
-          value={exportText}
-          onfocus={(e) => e.currentTarget.select()}
-        />
-        <button class="btn primary" onclick={copyExport}>Copy</button>
-      </div>
-    </div>
-  {:else if transfer === 'import'}
-    <div class="transfer-panel">
-      <label for="import-text">Paste an exported list (ADE2026-FAVS:…) or party links</label>
-      <textarea id="import-text" rows="3" bind:value={pasted} placeholder="ADE2026-FAVS:…"></textarea>
-      <div class="row end">
-        <button class="btn" onclick={() => ((transfer = null), (pasted = ''))}>Cancel</button>
-        <button class="btn primary" disabled={!pasted.trim()} onclick={doImport}>Import</button>
-      </div>
-    </div>
-  {/if}
 {/if}
 
 {#if singleDay && nextLabel}

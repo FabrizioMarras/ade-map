@@ -24,7 +24,7 @@
     position: fixed;
     left: 12px;
     right: 12px;
-    top: calc(var(--safe-top) + 140px);
+    top: calc(var(--safe-top) + 124px);
     z-index: 31;
     display: flex;
     gap: 8px;
