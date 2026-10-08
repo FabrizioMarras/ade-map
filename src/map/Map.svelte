@@ -178,14 +178,18 @@
     applied = null;
   });
 
-  // Recompute per-venue state when the Pulse clock moves; coalesced to one update per frame.
+  // Recompute per-venue state when the Pulse clock moves, at most once per frame. Never
+  // cancel a pending update: during playback the clock changes every frame, and cancelling
+  // would starve the map (it froze while the clock ran). The update draws the latest time.
   $effect(() => {
-    const t = app.pulseT;
+    void app.pulseT;
     const on = app.pulseOn;
     void pulseData;
-    if (!map || !styleReady || !on) return;
-    cancelAnimationFrame(pulseFrame);
-    pulseFrame = requestAnimationFrame(() => applyPulse(t));
+    if (!map || !styleReady || !on || pulseFrame) return;
+    pulseFrame = requestAnimationFrame(() => {
+      pulseFrame = 0;
+      if (app.pulseOn) applyPulse(app.pulseT);
+    });
   });
 
   function applyPulse(t: number) {

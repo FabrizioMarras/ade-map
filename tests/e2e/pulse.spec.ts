@@ -67,3 +67,18 @@ test('Pulse: sparkline entry, tap a lit venue, back button returns to the map', 
   expect(after[0]).toBeCloseTo(before[0], 4);
   expect(after[1]).toBeCloseTo(before[1], 4);
 });
+
+test('Pulse: the map follows the clock while playing', async ({ page }) => {
+  await page.goto('./#d=23&p=4200');
+  const map = page.locator('.map');
+  await expect(map).toHaveAttribute('data-pulse-t', '4200');
+  await page.getByRole('button', { name: '▶ Play' }).click();
+  await page.waitForTimeout(1200);
+  // At 30 festival-minutes per second the map must have redrawn well past the start
+  // while still playing (it used to freeze until playback stopped).
+  const drawn = Number(await map.getAttribute('data-pulse-t'));
+  expect(drawn).toBeGreaterThanOrEqual(4215);
+  await page.getByRole('button', { name: '❚❚ Pause' }).click();
+  const t = Number(new URL(page.url()).hash.match(/p=(\d+)/)![1]);
+  await expect(map).toHaveAttribute('data-pulse-t', String(t));
+});
