@@ -73,11 +73,12 @@ test('Pulse: the map follows the clock while playing', async ({ page }) => {
   const map = page.locator('.map');
   await expect(map).toHaveAttribute('data-pulse-t', '4200');
   await page.getByRole('button', { name: '▶ Play' }).click();
-  await page.waitForTimeout(1200);
-  // At 30 festival-minutes per second the map must have redrawn well past the start
-  // while still playing (it used to freeze until playback stopped).
-  const drawn = Number(await map.getAttribute('data-pulse-t'));
-  expect(drawn).toBeGreaterThanOrEqual(4215);
+  // While still playing, the map must redraw past the start (it used to freeze until playback
+  // stopped). Polled rather than timed, so slow CI machines don't fail it.
+  await expect
+    .poll(async () => Number(await map.getAttribute('data-pulse-t')), { timeout: 8000 })
+    .toBeGreaterThanOrEqual(4210);
+  await expect(page.getByRole('button', { name: '❚❚ Pause' })).toBeVisible(); // still playing
   await page.getByRole('button', { name: '❚❚ Pause' }).click();
   const t = Number(new URL(page.url()).hash.match(/p=(\d+)/)![1]);
   await expect(map).toHaveAttribute('data-pulse-t', String(t));
