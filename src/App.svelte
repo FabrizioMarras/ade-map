@@ -58,7 +58,7 @@
   );
 
   const padding = $derived({
-    top: 134, // top bar incl. the brand slot
+    top: 150, // top bar incl. the Insights link row
     bottom: bottomCover,
     left: app.wide && sheetShown ? 400 : 0, // the side panel (hidden in Pulse)
     right: 56, // the map control stack

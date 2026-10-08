@@ -10,7 +10,8 @@ import { clampT, defaultT } from './pulse';
 import { defaultDay, isFestivalTime, nowWall } from './time';
 import type { AdeEvent, Dataset, Venue } from './types';
 
-export type ThemePref = 'auto' | 'light' | 'dark';
+import { resolveTheme, type ThemePref } from './theme';
+export type { ThemePref };
 export type SheetSnap = 'collapsed' | 'half' | 'expanded';
 
 export interface VenuePin {
@@ -23,11 +24,6 @@ export interface VenuePin {
   fav: boolean;
   /** Map pins only: all venues sharing this spot (2+), this pin's venue being the busiest. */
   members?: Venue[];
-}
-
-function autoTheme(now: number): 'light' | 'dark' {
-  const h = new Date(now).getUTCHours();
-  return h >= 18 || h < 7 ? 'dark' : 'light';
 }
 
 class AppState {
@@ -92,7 +88,7 @@ class AppState {
   favs = $state.raw<Set<number>>(new Set(readJSON<number[]>(KEYS.favs, [])));
 
   themePref = $state<ThemePref>(readJSON<ThemePref>(KEYS.theme, 'auto'));
-  theme = $derived<'light' | 'dark'>(this.themePref === 'auto' ? autoTheme(this.now) : this.themePref);
+  theme = $derived<'light' | 'dark'>(resolveTheme(this.themePref, this.now));
   /** Map style follows the theme, except Pulse, which is a night map by design. */
   mapTheme = $derived<'light' | 'dark'>(this.pulseOn ? 'dark' : this.theme);
 

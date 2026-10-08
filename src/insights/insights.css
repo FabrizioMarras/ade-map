@@ -1,130 +1,129 @@
-/* Insights page. Chart colours: reference dataviz palette, validated on these surfaces. */
+/*
+ * Insights page on the app's design system: tokens, fonts and theme come from src/app.css
+ * (imported first). Only chart roles are defined here, as an "emphasis" palette: the primary
+ * series in the accent yellow, everything else in muted neutrals, Pulse's live orange for
+ * live-now highlights, and a single-hue yellow ramp for heatmaps.
+ */
 :root {
-  color-scheme: light;
-  --font-display: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif;
-  --font-body: 'Source Sans 3', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --page: #f2f3f0;
-  --surface: #ffffff;
-  --ink: #111111;
-  --ink-2: #52514e;
-  --muted: #6b6a66;
-  --grid: #e1e0d9;
+  --live-orange: #ffb000;
+  --pri-fill: var(--accent);
+  --pri-stroke: #8a6d00; /* gold outline: yellow alone is too faint on the light surface */
+  --pri-wash: rgb(255 212 0 / 0.28);
+  --neutral-1: #6b6b66;
+  --neutral-2: #a3a39c;
+  --neutral-3: #cfcfc8;
+  --grid: var(--line);
   --axis: #c3c2b7;
-  --border: rgba(11, 11, 11, 0.1);
-  --accent: #ffd400;
-  --s1: #2a78d6; /* blue */
-  --s2: #eb6834; /* orange */
-  --s3: #1baf7a; /* aqua */
-  --s4: #eda100; /* yellow */
-  --wash: rgba(42, 120, 214, 0.1);
-  /* Sequential blue, light → dark */
-  --q0: #f0f5fc;
-  --q1: #cde2fb;
-  --q2: #9ec5f4;
-  --q3: #6da7ec;
-  --q4: #3987e5;
-  --q5: #256abf;
-  --q6: #184f95;
+  /* Heatmap ramp: surface → yellow → gold */
+  --h0: var(--surface-2);
+  --h1: #fff6c2;
+  --h2: #ffec80;
+  --h3: #ffd400;
+  --h4: #d9b100;
+  --h5: #a88900;
+  --h6: #7a6300;
 }
 
 :root[data-theme='dark'] {
-  color-scheme: dark;
-  --page: #000000;
-  --surface: #111214;
-  --ink: #f6f6f2;
-  --ink-2: #c3c2b7;
-  --muted: #9a9a93;
-  --grid: #2c2c2a;
+  --pri-stroke: var(--accent);
+  --pri-wash: rgb(255 212 0 / 0.2);
+  --neutral-1: #c3c2b7;
+  --neutral-2: #8a8a84;
+  --neutral-3: #55554f;
   --axis: #383835;
-  --border: rgba(255, 255, 255, 0.1);
-  --s1: #3987e5;
-  --s2: #d95926;
-  --s3: #199e70;
-  --s4: #c98500;
-  --wash: rgba(57, 135, 229, 0.14);
-  --q0: #16202d;
-  --q1: #104281;
-  --q2: #184f95;
-  --q3: #1c5cab;
-  --q4: #2a78d6;
-  --q5: #5598e7;
-  --q6: #86b6ef;
+  --h0: var(--surface-2);
+  --h1: #2b2711;
+  --h2: #4a4110;
+  --h3: #786800;
+  --h4: #a89000;
+  --h5: #d6b600;
+  --h6: #ffd400;
 }
 
-* {
-  box-sizing: border-box;
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --pri-stroke: var(--accent);
+    --neutral-1: #c3c2b7;
+    --neutral-2: #8a8a84;
+    --neutral-3: #55554f;
+    --h1: #2b2711;
+    --h2: #4a4110;
+    --h3: #786800;
+    --h4: #a89000;
+    --h5: #d6b600;
+    --h6: #ffd400;
+  }
 }
 
+/* The app shell locks scrolling; this is a normal scrolling page. */
+html,
 body {
-  margin: 0;
-  background: var(--page);
-  color: var(--ink);
-  font: 16px/1.45 var(--font-body);
-  -webkit-font-smoothing: antialiased;
+  height: auto;
+  overflow: visible;
+  overflow-x: hidden;
 }
 
 main {
   max-width: 920px;
   margin: 0 auto;
-  padding: calc(env(safe-area-inset-top, 0px) + 20px) 16px calc(env(safe-area-inset-bottom, 0px) + 32px);
+  padding: calc(var(--safe-top) + 12px) 12px calc(var(--safe-bottom) + 24px);
 }
 
-a {
-  color: inherit;
-}
-
-:focus-visible {
-  outline: 3px solid var(--s1);
-  outline-offset: 2px;
-}
-
-.top {
-  display: flex;
-  justify-content: space-between;
+/* Header: back link, display title, data date */
+.back {
+  display: inline-flex;
   align-items: center;
-  gap: 12px;
-  font-size: 14px;
-}
-
-.top a {
+  min-height: var(--tap);
   font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
 }
 
 h1 {
-  margin: 14px 0 4px;
-  font: 700 40px/1 var(--font-display);
+  margin: 4px 0 0;
+  font: 700 44px/1 var(--font-display);
   text-transform: uppercase;
   letter-spacing: 0.01em;
 }
 
+.asof {
+  margin: 4px 0 6px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
 .lede {
-  margin: 0 0 20px;
-  color: var(--ink-2);
+  margin: 0 0 16px;
   max-width: 62ch;
 }
 
+/* Cards: as the app's sheet */
 .card {
-  margin: 0 0 16px;
-  padding: 16px;
-  border-radius: 14px;
+  margin: 0 0 12px;
+  padding: 14px 16px 16px;
+  border-radius: var(--radius);
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.06);
 }
 
 .card h2 {
-  margin: 0;
+  margin: 0 0 10px;
   font: 700 22px/1.1 var(--font-display);
   text-transform: uppercase;
 }
 
+/* The sentence sits directly under its chart. */
 .card .say {
-  margin: 6px 0 12px;
+  margin: 10px 0 0;
   font-size: 17px;
   max-width: 65ch;
 }
 
 .card .note {
-  margin: 8px 0 0;
+  margin: 6px 0 0;
   font-size: 13px;
   color: var(--muted);
 }
@@ -136,7 +135,7 @@ h1 {
 
 .chart svg {
   display: block;
-  width: 100%;
+  max-width: 100%;
   height: auto;
   overflow: visible;
 }
@@ -159,25 +158,35 @@ h1 {
 
 .line {
   fill: none;
-  stroke: var(--s1);
+  stroke: var(--pri-stroke);
   stroke-width: 2;
   stroke-linejoin: round;
   stroke-linecap: round;
 }
 
 .area {
-  fill: var(--wash);
+  fill: var(--pri-wash);
 }
 
 .cross {
-  stroke: var(--ink-2);
+  stroke: var(--fg);
   stroke-width: 1;
 }
 
 .dot {
-  fill: var(--s1);
-  stroke: var(--surface);
+  fill: var(--pri-fill);
+  stroke: var(--pri-stroke);
   stroke-width: 2;
+}
+
+.now-line {
+  stroke: var(--live-orange);
+  stroke-width: 2;
+}
+
+.dot.live {
+  fill: var(--live-orange);
+  stroke: var(--surface);
 }
 
 .tip {
@@ -185,72 +194,103 @@ h1 {
   z-index: 2;
   pointer-events: none;
   padding: 6px 10px;
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--surface);
-  border: 1px solid var(--border);
-  box-shadow: 0 4px 16px rgb(0 0 0 / 0.15);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
   font-size: 13px;
   white-space: nowrap;
-  color: var(--ink-2);
+  color: var(--muted);
 }
 
 .tip strong {
   display: block;
-  color: var(--ink);
+  color: var(--fg);
   font-size: 15px;
 }
 
-/* Heatmaps (HTML tables, so they are their own table view) */
+/* Heatmaps: tables (their own table view), fit the card at 400px */
 .heat {
   width: 100%;
+  table-layout: fixed;
   border-collapse: separate;
   border-spacing: 2px;
   font-variant-numeric: tabular-nums;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .heat th {
   font-weight: 600;
-  color: var(--ink-2);
+  color: var(--muted);
   text-align: left;
-  padding: 4px 6px;
-  white-space: nowrap;
+  padding: 4px 4px;
+  overflow-wrap: anywhere;
+  hyphens: auto;
 }
 
 .heat thead th {
   text-align: center;
-  font-size: 13px;
+  font-size: 12px;
+  line-height: 1.15;
+  vertical-align: bottom;
+}
+
+.heat tbody th {
+  width: 84px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .heat td {
   text-align: center;
-  padding: 6px 4px;
+  padding: 6px 2px;
   border-radius: 4px;
-  min-width: 40px;
 }
 
 .heat td:hover,
 .heat td:focus {
-  outline: 2px solid var(--ink);
+  outline: 2px solid var(--fg);
   outline-offset: -2px;
 }
 
-.scroll {
-  overflow-x: auto;
+/* Stacked bars */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 10px;
 }
 
-/* Stacked bars */
+/* Legend entries as the app's chips */
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--chip);
+  font-size: 13px;
+}
+
+.legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
 .bars {
   display: grid;
-  grid-template-columns: max-content 1fr max-content;
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
   gap: 8px 10px;
   align-items: center;
 }
 
 .bars .day {
-  font-weight: 600;
-  font-size: 14px;
-  color: var(--ink-2);
+  font: 700 15px/1 var(--font-display);
+  text-transform: uppercase;
 }
 
 .bars .track {
@@ -260,7 +300,6 @@ h1 {
 }
 
 .bars .seg {
-  position: relative;
   min-width: 2px;
   display: flex;
   align-items: center;
@@ -268,10 +307,6 @@ h1 {
   font-size: 12px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-}
-
-.bars .seg:first-child {
-  border-radius: 0;
 }
 
 .bars .seg:last-child {
@@ -282,75 +317,56 @@ h1 {
   font-size: 13px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
-}
-
-.legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 16px;
-  margin: 0 0 10px;
-  font-size: 13px;
-  color: var(--ink-2);
-}
-
-.legend span {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.legend i {
-  width: 12px;
-  height: 12px;
-  border-radius: 3px;
-  display: inline-block;
+  text-align: right;
 }
 
 /* Stat tiles */
 .tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
 }
 
 .tile {
   padding: 12px;
   border-radius: 10px;
-  border: 1px solid var(--border);
+  background: var(--surface-2);
 }
 
 .tile.lead {
-  border-color: var(--s1);
+  background: var(--accent);
+  color: var(--accent-ink);
 }
 
 .tile .label {
-  font-size: 14px;
-  color: var(--ink-2);
+  font: 700 14px/1.1 var(--font-display);
+  text-transform: uppercase;
 }
 
 .tile .value {
-  font-size: 40px;
-  font-weight: 700;
-  line-height: 1.1;
+  font: 700 44px/1 var(--font-display);
+  margin: 4px 0;
 }
 
 .tile .sub {
   font-size: 13px;
-  color: var(--muted);
 }
 
 details {
-  margin-top: 10px;
+  margin-top: 8px;
   font-size: 14px;
 }
 
 summary {
   cursor: pointer;
   font-weight: 600;
-  color: var(--ink-2);
   min-height: 32px;
   display: flex;
   align-items: center;
+}
+
+.scroll {
+  overflow-x: auto;
 }
 
 table.data {
@@ -363,7 +379,7 @@ table.data th,
 table.data td {
   padding: 4px 10px 4px 0;
   text-align: right;
-  border-bottom: 1px solid var(--grid);
+  border-bottom: 1px solid var(--line);
 }
 
 table.data th:first-child,
@@ -371,27 +387,36 @@ table.data td:first-child {
   text-align: left;
 }
 
-footer {
-  margin-top: 24px;
-  font-size: 14px;
-  color: var(--ink-2);
+/* Footer: the app's credits footer */
+.credits {
+  margin-top: 16px;
+  padding: 16px 4px 0;
+  font-size: 13px;
+  color: var(--muted);
+  border-top: 1px solid var(--line);
 }
 
-footer p {
+.credits p {
   margin: 0 0 6px;
+}
+
+.credits .copyright {
+  margin-top: 10px;
+  color: var(--fg);
+  font-weight: 600;
 }
 
 .loading,
 .error {
   padding: 40px 0;
-  color: var(--ink-2);
+  color: var(--muted);
 }
 
-@media (max-width: 520px) {
+@media (max-width: 420px) {
   h1 {
-    font-size: 32px;
+    font-size: 38px;
   }
   .tile .value {
-    font-size: 32px;
+    font-size: 36px;
   }
 }

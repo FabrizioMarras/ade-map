@@ -39,6 +39,16 @@
       </div>
     </div>
   {:else}
+    <!-- Insights link: tiny, above the search bar; hidden (space kept) while a party or venue is open. -->
+    <a
+      class="insights-link"
+      href="./insights/"
+      class:hidden={!!(app.selectedEventId || app.selectedVenueId)}
+      aria-hidden={app.selectedEventId || app.selectedVenueId ? 'true' : undefined}
+      tabindex={app.selectedEventId || app.selectedVenueId ? -1 : undefined}
+    >
+      Insights · the festival by hour, area and genre <span aria-hidden="true">→</span>
+    </a>
     <div class="row">
       <label class="search">
         <Icon name="search" size={18} />
@@ -114,7 +124,7 @@
     right: 0;
     z-index: 15;
     /* 22px: room for the brand badge in the top-right corner (Brand.svelte). */
-    padding: calc(var(--safe-top) + 22px) 10px 0;
+    padding: calc(var(--safe-top) + 2px) 10px 0;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -131,6 +141,35 @@
     align-items: center;
     pointer-events: auto;
     min-width: 0;
+  }
+  /* Tiny link row (≥32px tall touch target). Clear of the © badge on the right. */
+  .insights-link {
+    pointer-events: auto;
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    max-width: calc(100% - 150px);
+    min-height: 32px;
+    margin: 0 0 -4px 4px;
+    padding: 0 2px;
+    font: 700 12px/1 var(--font-display);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--fg);
+    text-decoration: underline;
+    text-decoration-color: var(--accent);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
+  }
+  :global(:root[data-theme='dark']) .insights-link {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .insights-link.hidden {
+    visibility: hidden;
   }
   .pulse-card {
     pointer-events: auto;

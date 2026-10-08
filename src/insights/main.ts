@@ -1,4 +1,7 @@
+import '../app.css';
 import './insights.css';
+import { resolveTheme, storedThemePref } from '../lib/theme';
+import { asOfLabel, nowWall, parseWall } from '../lib/time';
 import {
   at23Sentence,
   clusterSentence,
@@ -10,23 +13,9 @@ import {
   type Insights,
 } from './sentences';
 
-// Same theme choice as the app: saved preference, else dark after 18:00 / before 07:00.
+// Same light/dark behaviour as the app (stored preference, else dark 18:00–07:00).
 function applyTheme() {
-  let pref = 'auto';
-  try {
-    pref = JSON.parse(localStorage.getItem('ade2026.theme.v1') ?? '"auto"');
-  } catch {
-    /* storage unavailable */
-  }
-  const h = Number(
-    new Intl.DateTimeFormat('en-GB', {
-      timeZone: 'Europe/Amsterdam',
-      hour: '2-digit',
-      hourCycle: 'h23',
-    }).format(new Date()),
-  );
-  const theme = pref === 'light' || pref === 'dark' ? pref : h >= 18 || h < 7 ? 'dark' : 'light';
-  document.documentElement.dataset.theme = theme;
+  document.documentElement.dataset.theme = resolveTheme(storedThemePref());
 }
 
 // --- tiny DOM helpers (all text goes through textContent) ---------------------------------
@@ -45,8 +34,16 @@ function svg(tag: string, attrs: Attrs = {}, text?: string) {
   return e;
 }
 
-function card(title: string, sentence: string, ...body: Node[]) {
-  return el('section', { class: 'card' }, el('h2', {}, title), el('p', { class: 'say' }, sentence), ...body);
+/** A chart card: title, the chart, its sentence directly underneath, then notes and table. */
+function card(title: string, sentence: string, chart: Node, ...rest: Node[]) {
+  return el(
+    'section',
+    { class: 'card' },
+    el('h2', {}, title),
+    chart,
+    el('p', { class: 'say' }, sentence),
+    ...rest,
+  );
 }
 
 function tableView(head: string[], rows: (string | number)[][]) {
@@ -148,6 +145,15 @@ function hourlyChart(i: Insights) {
     const peak = counts.indexOf(max);
     root.append(svg('circle', { class: 'dot', cx: x(peak), cy: y(max), r: 4 }));
     root.append(svg('text', { x: x(peak) + 8, y: y(max) + 4 }, `${max}`));
+    // During the festival: where "now" is on the week, in Pulse's live orange.
+    const nowK = (nowWall() - parseWall(start)) / (stepMinutes * 60_000);
+    if (nowK >= 0 && nowK <= counts.length - 1) {
+      const k0 = Math.floor(nowK);
+      const v = counts[k0] + (counts[Math.min(k0 + 1, counts.length - 1)] - counts[k0]) * (nowK - k0);
+      root.append(svg('line', { class: 'now-line', x1: x(nowK), x2: x(nowK), y1: m.t, y2: m.t + ih }));
+      root.append(svg('circle', { class: 'dot live', cx: x(nowK), cy: y(v), r: 5 }));
+      root.append(svg('text', { x: x(nowK) + 6, y: m.t + ih - 6 }, 'now')); // bottom: clear of the peak label
+    }
 
     const cross = svg('line', { class: 'cross', y1: m.t, y2: m.t + ih, visibility: 'hidden' });
     const dot = svg('circle', { class: 'dot', r: 4, visibility: 'hidden' });
@@ -224,10 +230,10 @@ function inkFor(bgHex: string): string {
 
 function heatColor(v: number, max: number): { bg: string; ink: string } {
   const css = getComputedStyle(document.documentElement);
-  if (!max || v <= 0) return { bg: 'var(--q0)', ink: 'var(--muted)' };
+  if (!max || v <= 0) return { bg: 'var(--h0)', ink: 'var(--muted)' };
   const step = Math.min(6, 1 + Math.floor((v / max) * 5.999));
-  const hex = css.getPropertyValue(`--q${step}`).trim();
-  return { bg: `var(--q${step})`, ink: /^#[0-9a-f]{6}$/i.test(hex) ? inkFor(hex) : 'var(--ink)' };
+  const hex = css.getPropertyValue(`--h${step}`).trim();
+  return { bg: `var(--h${step})`, ink: /^#[0-9a-f]{6}$/i.test(hex) ? inkFor(hex) : 'var(--fg)' };
 }
 
 function heatmap(
@@ -379,10 +385,13 @@ function stacked(
 }
 
 function freeChart(i: Insights) {
-  const chart = stacked(i, ['Free', 'Paid'], ['var(--s1)', 'var(--s2)'], ['#ffffff', '#ffffff'], (d) => [
-    i.freeByDay[d].free,
-    i.freeByDay[d].paid,
-  ]);
+  const chart = stacked(
+    i,
+    ['Free', 'Paid'],
+    ['var(--pri-fill)', 'var(--neutral-2)'],
+    ['#000000', '#000000'],
+    (d) => [i.freeByDay[d].free, i.freeByDay[d].paid],
+  );
   return card(
     'Free vs paid, by day',
     freeSentence(i),
@@ -403,8 +412,8 @@ function sizeChart(i: Insights) {
   const chart = stacked(
     i,
     i.sizes,
-    ['var(--s1)', 'var(--s2)', 'var(--s3)', 'var(--s4)'],
-    ['#ffffff', '#ffffff', '#000000', '#000000'],
+    ['var(--pri-fill)', 'var(--neutral-1)', 'var(--neutral-2)', 'var(--neutral-3)'],
+    ['#000000', '#000000', '#000000', '#000000'],
     (d) => i.sizes.map((s) => i.sizeByDay[d].counts[s] ?? 0),
     (d) =>
       `${i.sizes.reduce((n, s) => n + (i.sizeByDay[d].counts[s] ?? 0), 0)} (+${i.sizeByDay[d].untagged} untagged)`,
@@ -456,21 +465,12 @@ async function main() {
     const res = await fetch('../data/insights.json', { cache: 'no-cache' });
     if (!res.ok) throw new Error(String(res.status));
     const i = (await res.json()) as Insights;
-    const asOf = new Date(i.generated).toLocaleString('en-GB', {
-      timeZone: 'Europe/Amsterdam',
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    const asOf = asOfLabel(i.generated);
+    const year = new Date().getFullYear();
     root.replaceChildren(
-      el(
-        'div',
-        { class: 'top' },
-        el('a', { href: '../' }, '← ADE 2026 Map'),
-        el('span', {}, `Programme as of ${asOf}`),
-      ),
-      el('h1', {}, 'ADE 2026 insights'),
+      el('a', { class: 'back', href: '../' }, '← Back to the map'),
+      el('h1', {}, 'Insights'),
+      el('p', { class: 'asof' }, `Programme as of ${asOf}`),
       el(
         'p',
         { class: 'lede' },
@@ -482,19 +482,28 @@ async function main() {
       genreChart(i),
       freeChart(i),
       sizeChart(i),
+      // The app's credits footer.
       el(
         'footer',
-        {},
+        { class: 'credits' },
+        el('p', {}, `Programme as of ${asOf} · updated automatically from the ADE site`),
         el(
           'p',
           {},
-          `Data: Amsterdam Dance Event festival programme, as of ${asOf}; refreshed automatically. ${i.method.live}`,
+          'Data © Amsterdam Dance Event (personal planning only) · Geocoding: PDOK Locatieserver · Map data © ',
+          el(
+            'a',
+            { href: 'https://www.openstreetmap.org/copyright', target: '_blank', rel: 'noopener' },
+            'OpenStreetMap',
+          ),
+          ' contributors · Tiles: ',
+          el('a', { href: 'https://openfreemap.org', target: '_blank', rel: 'noopener' }, 'OpenFreeMap'),
         ),
+        el('p', {}, i.method.live, ' ', i.method.neighbourhood),
         el(
           'p',
-          {},
-          el('a', { href: '../' }, 'Open the ADE 2026 Map'),
-          ' · Contact: FM Consulting · ',
+          { class: 'copyright' },
+          `© ${year} FM Consulting · `,
           el(
             'a',
             { href: 'https://fabriziomarras.com', target: '_blank', rel: 'noopener' },

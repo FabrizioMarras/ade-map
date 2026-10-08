@@ -42,6 +42,26 @@
   --shadow: 0 6px 24px rgb(0 0 0 / 0.6);
 }
 
+/* Before the script sets data-theme (first paint), follow the OS so nights don't flash white. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --bg: #000000;
+    --surface: #111214;
+    --surface-2: #1b1c1f;
+    --fg: #f6f6f2;
+    --muted: #b4b4ad;
+    --line: #2c2d31;
+    --chip: #222327;
+    --soldout: #9a9a9a;
+    --resale: #5cb3ff;
+    --resale-ink: #000000;
+    --live: #19e39f;
+    --focus: #7fb0ff;
+    --shadow: 0 6px 24px rgb(0 0 0 / 0.6);
+  }
+}
+
 * {
   box-sizing: border-box;
 }

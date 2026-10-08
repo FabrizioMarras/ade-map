@@ -36,7 +36,7 @@
   }
 
   /** Fully expanded, the sheet stops below the search row and the brand badge (TOP_RESERVE). */
-  const TOP_RESERVE = 78;
+  const TOP_RESERVE = 94;
   let safeTop = $state(0);
   const sheetH = $derived(Math.round(vh - safeTop - TOP_RESERVE));
 
