@@ -271,7 +271,13 @@
 
   // Push pin data whenever the result set or selection changes.
   $effect(() => {
-    const data = pinsGeoJSON(app.pins, coords, app.focusVenueId, app.query.trim().length > 0);
+    const data = pinsGeoJSON(
+      app.pins,
+      coords,
+      app.focusVenueId,
+      app.query.trim().length > 0,
+      app.filters.soldOut === 'resale',
+    );
     if (!map || !styleReady) return;
     (map.getSource('venues') as GeoJSONSource | undefined)?.setData(data);
   });

@@ -10,6 +10,7 @@ export const COLORS = {
   accent: '#ffd400',
   live: '#00c987',
   soldOut: '#8a8a8a',
+  resale: '#2f86f0',
 };
 
 export const HOODS: [string, number, number][] = [
@@ -31,6 +32,8 @@ export function pinsGeoJSON(
   selectedId: string | null,
   /** A search is active: matching venues get labels at every zoom, others fade further. */
   searching = false,
+  /** Sold-out filter set to "check TicketSwap": sold-out venues get the resale colour. */
+  resale = false,
 ): GeoJSON.FeatureCollection {
   return {
     type: 'FeatureCollection',
@@ -47,6 +50,7 @@ export function pinsGeoJSON(
         hl: searching && p.matched > 0,
         searching,
         soldOut: p.soldOutAll,
+        resale: resale && p.soldOutAll,
         live: p.live,
         fav: p.fav,
         selected: p.venue.id === selectedId,
@@ -139,6 +143,8 @@ export function addAppLayers(map: MlMap, theme: 'light' | 'dark') {
         'case',
         ['any', ['get', 'selected'], ['get', 'hl']],
         COLORS.accent,
+        ['get', 'resale'],
+        COLORS.resale,
         ['get', 'soldOut'],
         COLORS.soldOut,
         ['get', 'live'],

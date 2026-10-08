@@ -18,6 +18,9 @@
   --line: #dcdcd6;
   --chip: #edede8;
   --soldout: #6b6b6b;
+  /* Sold out, available on TicketSwap (filter mode): distinct from the muted sold-out grey. */
+  --resale: #0a5fc8;
+  --resale-ink: #ffffff;
   --focus: #1a5cff;
   --shadow: 0 6px 24px rgb(0 0 0 / 0.16);
 }
@@ -32,6 +35,8 @@
   --line: #2c2d31;
   --chip: #222327;
   --soldout: #9a9a9a;
+  --resale: #5cb3ff;
+  --resale-ink: #000000;
   --live: #19e39f;
   --focus: #7fb0ff;
   --shadow: 0 6px 24px rgb(0 0 0 / 0.6);

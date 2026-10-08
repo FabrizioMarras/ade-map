@@ -2,6 +2,7 @@
   import { FACET_LABELS } from '../lib/facets';
   import { cleanDescription, icsUrl } from '../lib/format';
   import { directionsUrls } from '../lib/geo';
+  import { ticketswapUrl } from '../lib/ticketswap';
   import { app } from '../lib/store.svelte';
   import { status, statusLabel, timeRange } from '../lib/time';
   import type { AdeEvent, FacetKey } from '../lib/types';
@@ -21,6 +22,7 @@
   let clamped = $state(false);
 
   const st = $derived(status(event, app.now));
+  const resaleUrl = $derived(ticketswapUrl(event));
   const dirs = $derived(directionsUrls(event.venue.lat, event.venue.lng, event.venue.name));
   const description = $derived(cleanDescription(app.descriptions?.get(event.id) ?? event.description ?? ''));
   const tagGroups = $derived(
@@ -56,8 +58,7 @@
     {#if event.subtitle}<p class="subtitle">{event.subtitle}</p>{/if}
     <p class="when tnum">{timeRange(event)}</p>
     <p class="status" data-status={st}>
-      {#if event.soldOut}<span class="soldout">Sold out</span> ·
-      {/if}{statusLabel(event, app.now)}
+      {#if event.soldOut}<span class="soldout">Sold out</span>&nbsp;·&nbsp;{/if}{statusLabel(event, app.now)}
     </p>
   </header>
 
@@ -67,19 +68,26 @@
   </button>
 
   <div class="actions">
-    {#if event.ticketUrl}
-      {#if event.soldOut}
-        <button class="btn" disabled><Icon name="ticket" />Sold out</button>
-      {:else}
-        <a class="btn primary" href={event.ticketUrl} target="_blank" rel="noopener"
-          ><Icon name="ticket" />{event.ticketText || 'Buy tickets'}</a
-        >
-      {/if}
+    {#if event.soldOut}
+      <a class="btn primary" href={resaleUrl} target="_blank" rel="noopener"
+        ><Icon name="ticket" />Check TicketSwap</a
+      >
+    {:else if event.ticketUrl}
+      <a class="btn primary" href={event.ticketUrl} target="_blank" rel="noopener"
+        ><Icon name="ticket" />{event.ticketText || 'Buy tickets'}</a
+      >
     {/if}
     <a class="btn" href={event.url} target="_blank" rel="noopener"><Icon name="external" />ADE page</a>
     <a class="btn" href={icsUrl(event.id)}><Icon name="calendar" />Add to calendar</a>
     <a class="btn" href={dirs.google} target="_blank" rel="noopener"><Icon name="route" />Directions</a>
   </div>
+  {#if event.soldOut}
+    <p class="resale-note">Resale via TicketSwap · prices capped</p>
+  {:else if event.ticketUrl}
+    <p class="resale-note">
+      <a href={resaleUrl} target="_blank" rel="noopener">Resale on TicketSwap</a>
+    </p>
+  {/if}
 
   {#if event.lineup.length}
     <h4 class="section-title">Line-up</h4>
@@ -177,6 +185,15 @@
   .addr {
     color: var(--muted);
     font-size: 14px;
+  }
+  .resale-note {
+    margin: -4px 16px 4px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .resale-note a {
+    color: var(--fg);
+    font-weight: 600;
   }
   .lineup {
     list-style: none;

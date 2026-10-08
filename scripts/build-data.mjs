@@ -1,7 +1,7 @@
 // Merge raw program + pages + venues → public/data/ade-2026.json and ade-2026.meta.json
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
-import { RAW, ROOT, args, readJSON, summary, writeJSON } from './lib.mjs';
+import { RAW, ROOT, args, readJSON, readManualFixes, summary, writeJSON } from './lib.mjs';
 import { splitData } from './split-data.mjs';
 
 const OUT = join(ROOT, 'public/data/ade-2026.json');
@@ -16,7 +16,9 @@ const previous = readJSON(OUT, { events: [], venues: [] });
 
 const wall = (d) => d.date.slice(0, 16); // "2026-10-21 14:00:00.000000" → "2026-10-21 14:00"
 const venuesById = new Map(venues.map((v) => [v.id, v]));
-const report = { noDetails: [], noVenue: [], unlocated: [], outsideBbox: [] };
+const report = { noDetails: [], noVenue: [], unlocated: [], outsideBbox: [], badOverrides: [] };
+const eventFixes = readManualFixes().events;
+const TICKETSWAP_HOST = /^https:\/\/(www\.)?ticketswap\.(com|nl)\//;
 
 const out = [];
 for (const e of events) {
@@ -53,6 +55,10 @@ for (const e of events) {
     image: d.image,
     description: d.description,
   });
+  // Hand-set TicketSwap event page (otherwise the app links to a TicketSwap search).
+  const tsUrl = eventFixes[e.id]?.ticketswapUrl;
+  if (tsUrl && TICKETSWAP_HOST.test(tsUrl)) out[out.length - 1].ticketswapUrl = tsUrl;
+  else if (tsUrl) report.badOverrides.push(`${e.id} ticketswapUrl is not a TicketSwap URL: ${tsUrl}`);
 }
 
 const used = new Set(out.map((e) => e.venueId));
@@ -178,9 +184,12 @@ summary(
     newlySoldOut.length
       ? `\n**Newly sold out**\n${list(newlySoldOut, (e) => `${e.start} — ${e.title}`)}`
       : '',
-    report.unlocated.length || report.noVenue.length || report.outsideBbox.length
+    report.unlocated.length ||
+    report.noVenue.length ||
+    report.outsideBbox.length ||
+    report.badOverrides.length
       ? `\n**Needs attention** (not on the map — add to \`scripts/manual-fixes.json\`)\n${list(
-          [...report.unlocated, ...report.noVenue, ...report.outsideBbox],
+          [...report.unlocated, ...report.noVenue, ...report.outsideBbox, ...report.badOverrides],
           (x) => x,
         )}`
       : '',

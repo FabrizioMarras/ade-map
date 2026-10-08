@@ -128,3 +128,11 @@ export async function pool(items, n, fn, label = '') {
 export function isMain(metaUrl) {
   return !!process.argv[1] && metaUrl === pathToFileURL(process.argv[1]).href;
 }
+
+/** scripts/manual-fixes.json: `{ venues: [...], events: { id: {...} } }` (older files: just the venue array). */
+export function readManualFixes() {
+  const raw = readJSON(join(ROOT, 'scripts/manual-fixes.json'), {});
+  return Array.isArray(raw)
+    ? { venues: raw, events: {} }
+    : { venues: raw.venues ?? [], events: raw.events ?? {} };
+}

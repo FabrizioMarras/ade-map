@@ -1,6 +1,6 @@
 // Venues (from the event pages) → coordinates via PDOK Locatieserver → scripts/raw/venues.json
 import { join } from 'node:path';
-import { CACHE, RAW, REFRESH, ROOT, get, isMain, readJSON, writeJSON } from './lib.mjs';
+import { CACHE, RAW, REFRESH, ROOT, get, isMain, readJSON, readManualFixes, writeJSON } from './lib.mjs';
 
 const PDOK = 'https://api.pdok.nl/bzk/locatieserver/search/v3_1/free';
 const BOUNDS = { minLat: 52.28, maxLat: 52.45, minLng: 4.72, maxLng: 5.05 };
@@ -57,7 +57,7 @@ if (isMain(import.meta.url)) {
   const events = readJSON(join(RAW, 'events.json'), null);
   const details = readJSON(join(RAW, 'details.json'), null);
   if (!events || !details) throw new Error('Run fetch-program and fetch-event-pages first');
-  const manual = new Map(readJSON(join(ROOT, 'scripts/manual-fixes.json'), []).map((v) => [v.id, v]));
+  const manual = new Map(readManualFixes().venues.map((v) => [v.id, v]));
   const cachePath = join(CACHE, 'geocode.json');
   const cache = REFRESH ? {} : readJSON(cachePath, {});
 

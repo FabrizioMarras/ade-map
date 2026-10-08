@@ -5,6 +5,12 @@ import type { AdeEvent } from './types';
 
 export type FilterFacet = 'genre' | 'time' | 'venueType' | 'area' | 'type';
 
+/**
+ * Sold-out parties: show normally, hide, or keep visible marked for TicketSwap resale
+ * ("Sold out · TicketSwap" badge instead of the muted style).
+ */
+export type SoldOutMode = 'all' | 'hide' | 'resale';
+
 export interface Filters {
   genre: string[];
   time: string[];
@@ -12,23 +18,25 @@ export interface Filters {
   area: string[];
   type: string[];
   free: boolean;
-  hideSoldOut: boolean;
+  soldOut: SoldOutMode;
 }
 
 export const FILTER_FACETS: FilterFacet[] = ['genre', 'time', 'venueType', 'area', 'type'];
 
 export function emptyFilters(): Filters {
-  return { genre: [], time: [], venueType: [], area: [], type: [], free: false, hideSoldOut: false };
+  return { genre: [], time: [], venueType: [], area: [], type: [], free: false, soldOut: 'all' };
 }
 
 export function activeFilterCount(f: Filters): number {
-  return FILTER_FACETS.reduce((n, k) => n + f[k].length, 0) + (f.free ? 1 : 0) + (f.hideSoldOut ? 1 : 0);
+  return (
+    FILTER_FACETS.reduce((n, k) => n + f[k].length, 0) + (f.free ? 1 : 0) + (f.soldOut !== 'all' ? 1 : 0)
+  );
 }
 
 /** AND across facets, OR within a facet. `skip` ignores one facet (for facet counts). */
 export function passesFilters(e: AdeEvent, f: Filters, skip?: FilterFacet): boolean {
   if (f.free && !e.free) return false;
-  if (f.hideSoldOut && e.soldOut) return false;
+  if (f.soldOut === 'hide' && e.soldOut) return false;
   for (const k of FILTER_FACETS) {
     if (k === skip || !f[k].length) continue;
     if (!f[k].some((t) => e.facets[k].includes(t))) return false;

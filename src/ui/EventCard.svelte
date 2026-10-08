@@ -29,7 +29,9 @@
     {#if showVenue}<span class="venue">{event.venue.name}</span>{/if}
     {#if note}<span class="note">{note}</span>{/if}
     <span class="tags">
-      {#if event.soldOut}<span class="tag soldout">Sold out</span>{/if}
+      {#if event.soldOut && app.filters.soldOut === 'resale'}<span class="tag resale"
+          >Sold out · TicketSwap</span
+        >{:else if event.soldOut}<span class="tag soldout">Sold out</span>{/if}
       {#if event.free}<span class="tag free">Free</span>{/if}
       {#each cardTags(event) as t (t)}<span class="tag">{t}</span>{/each}
     </span>
@@ -121,6 +123,11 @@
     padding: 1px 7px;
     border-radius: 999px;
     background: var(--chip);
+  }
+  .tag.resale {
+    background: var(--resale);
+    color: var(--resale-ink);
+    font-weight: 700;
   }
   .tag.soldout {
     background: var(--soldout);

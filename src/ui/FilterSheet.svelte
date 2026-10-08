@@ -1,6 +1,12 @@
 <script lang="ts">
   import { FACET_LABELS, TIME_LABELS } from '../lib/facets';
-  import { FILTER_FACETS, activeFilterCount, facetCounts, type FilterFacet } from '../lib/filter';
+  import {
+    FILTER_FACETS,
+    activeFilterCount,
+    facetCounts,
+    type FilterFacet,
+    type SoldOutMode,
+  } from '../lib/filter';
   import { plural } from '../lib/format';
   import { app } from '../lib/store.svelte';
   import Icon from './Icon.svelte';
@@ -10,6 +16,11 @@
   let dialog: HTMLDialogElement | undefined = $state();
   let showAll = $state<Record<string, boolean>>({});
   const LIMIT = 16;
+  const SOLD_OUT_OPTIONS: [SoldOutMode, string][] = [
+    ['all', 'Show all'],
+    ['hide', 'Hide sold out'],
+    ['resale', 'Sold out, check TicketSwap'],
+  ];
 
   const counts = $derived(open ? facetCounts(app.scopeEvents, app.filters) : null);
   const order: FilterFacet[] = ['time', 'genre', 'type', 'venueType', 'area'];
@@ -52,11 +63,21 @@
         <input type="checkbox" bind:checked={app.filters.free} />
         <span>Free events only</span>
       </label>
-      <label class="switch">
-        <input type="checkbox" bind:checked={app.filters.hideSoldOut} />
-        <span>Tickets available (hide sold out)</span>
-      </label>
     </div>
+
+    <fieldset>
+      <legend>Sold-out parties</legend>
+      <div class="chips" role="radiogroup" aria-label="Sold-out parties">
+        {#each SOLD_OUT_OPTIONS as [mode, label] (mode)}
+          <button
+            class="chip"
+            role="radio"
+            aria-checked={app.filters.soldOut === mode}
+            onclick={() => (app.filters.soldOut = mode)}>{label}</button
+          >
+        {/each}
+      </div>
+    </fieldset>
 
     {#each order.filter((k) => FILTER_FACETS.includes(k)) as k (k)}
       {@const opts = options(k)}
@@ -187,7 +208,8 @@
     background: var(--surface);
     font-size: 15px;
   }
-  .chip[aria-pressed='true'] {
+  .chip[aria-pressed='true'],
+  .chip[aria-checked='true'] {
     background: var(--fg);
     color: var(--surface);
     border-color: var(--fg);

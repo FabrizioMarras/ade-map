@@ -25,6 +25,8 @@ export interface RawEvent {
   ticketUrl: string | null;
   ticketText: string | null;
   image: string;
+  /** Hand-set TicketSwap event page (scripts/manual-fixes.json); otherwise a search is used. */
+  ticketswapUrl?: string;
   /** Absent in the core file; loaded separately (see loadDescriptions). */
   description?: string;
 }

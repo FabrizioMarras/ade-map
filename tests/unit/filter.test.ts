@@ -39,12 +39,31 @@ describe('filters', () => {
     expect(houseNight.length).toBeLessThan(house.length);
   });
 
-  it('handles free and sold-out toggles', () => {
-    const f = { ...emptyFilters(), free: true, hideSoldOut: true };
-    expect(activeFilterCount(f)).toBe(2);
+  it('handles the free toggle', () => {
+    const f = { ...emptyFilters(), free: true };
+    expect(activeFilterCount(f)).toBe(1);
     const r = applyQuery(data.events, q({ filters: f }));
-    expect(r.every((e) => e.free && !e.soldOut)).toBe(true);
     expect(r.length).toBeGreaterThan(0);
+    expect(r.every((e) => e.free)).toBe(true);
+  });
+
+  it('has three sold-out states', () => {
+    const soldOut = data.events.filter((e) => e.soldOut).length;
+    expect(soldOut).toBeGreaterThan(0);
+    const run = (mode: 'all' | 'hide' | 'resale') =>
+      applyQuery(data.events, q({ filters: { ...emptyFilters(), soldOut: mode } }));
+
+    expect(activeFilterCount(emptyFilters())).toBe(0); // 'all' is the default and not a filter
+    expect(run('all')).toHaveLength(data.events.length);
+
+    expect(activeFilterCount({ ...emptyFilters(), soldOut: 'hide' })).toBe(1);
+    expect(run('hide')).toHaveLength(data.events.length - soldOut);
+    expect(run('hide').some((e) => e.soldOut)).toBe(false);
+
+    // Resale keeps sold-out parties visible (the UI marks them for TicketSwap).
+    expect(activeFilterCount({ ...emptyFilters(), soldOut: 'resale' })).toBe(1);
+    expect(run('resale')).toHaveLength(data.events.length);
+    expect(run('resale').filter((e) => e.soldOut)).toHaveLength(soldOut);
   });
 
   it('counts facets with the other facets applied', () => {
