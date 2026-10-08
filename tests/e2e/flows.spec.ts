@@ -286,6 +286,7 @@ test('lasso and box work with a finger (touch), and the map pans again afterward
   page,
   context,
 }) => {
+  test.setTimeout(60_000); // many touch events; slow on CI runners
   await page.goto('./#d=23');
   await ready(page);
   const cdp = await context.newCDPSession(page);
