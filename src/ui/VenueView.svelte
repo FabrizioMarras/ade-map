@@ -3,6 +3,7 @@
   import { plural } from '../lib/format';
   import { app } from '../lib/store.svelte';
   import { formatT, toMinutes } from '../lib/pulse';
+  import { canShare, venueLink } from '../lib/share';
   import { festivalDay } from '../lib/time';
   import type { Venue } from '../lib/types';
   import EventCard from './EventCard.svelte';
@@ -36,6 +37,9 @@
     <a class="btn" href={dirs.google} target="_blank" rel="noopener"><Icon name="route" />Google Maps</a>
     <a class="btn" href={dirs.apple} target="_blank" rel="noopener"><Icon name="route" />Apple Maps</a>
     <a class="btn" href={venue.url} target="_blank" rel="noopener"><Icon name="external" />ADE venue page</a>
+    <button class="btn" onclick={() => app.share(venueLink(venue.id), venue.name)}
+      ><Icon name="share" />{canShare ? 'Share' : 'Copy link'}</button
+    >
   </div>
 
   {#if app.pulseOn}

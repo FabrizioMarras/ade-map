@@ -1,3 +1,4 @@
+import { decodeList, encodeList } from './share';
 import { DAYS } from './time';
 import type { DayKey } from './types';
 
@@ -9,6 +10,9 @@ export interface HashState {
   venue?: string;
   /** Pulse mode time in festival minutes (present = Pulse mode on). */
   pulse?: number;
+  /** A shared list of event ids (`list=`), and who shared it (`by=`). */
+  list?: number[];
+  by?: string;
 }
 
 /** `#d=24&e=2843412&v=40620&p=4290` ↔ state. */
@@ -27,6 +31,12 @@ export function parseHash(hash: string): HashState {
   if (v) out.venue = v;
   const pt = p.get('p');
   if (pt !== null && pt !== '' && Number.isFinite(Number(pt))) out.pulse = Number(pt);
+  const list = p.get('list');
+  if (list) {
+    out.list = decodeList(list);
+    const by = p.get('by')?.trim();
+    if (by) out.by = by.slice(0, 40);
+  }
   return out;
 }
 
@@ -37,5 +47,9 @@ export function formatHash(s: HashState): string {
   if (s.venue) p.set('v', s.venue);
   if (s.event) p.set('e', String(s.event));
   if (s.pulse !== undefined) p.set('p', String(Math.round(s.pulse)));
+  if (s.list?.length) {
+    p.set('list', encodeList(s.list));
+    if (s.by) p.set('by', s.by);
+  }
   return '#' + p.toString();
 }

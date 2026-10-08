@@ -32,7 +32,7 @@
     <button
       class="chip"
       class:fav={c.key === 'fav'}
-      aria-pressed={!app.nowMode && app.day === c.key}
+      aria-pressed={!app.nowMode && !app.sharedList && app.day === c.key}
       aria-label={c.key === 'fav' ? `My list (${app.favs.size})` : undefined}
       title={c.key === 'fav' ? 'My list' : undefined}
       onclick={() => {

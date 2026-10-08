@@ -1,6 +1,7 @@
 import { applyQuery, emptyFilters, inArea, type Filters } from './filter';
 import type { LngLat } from './geo';
 import { formatHash, parseHash, type DayScope } from './hash';
+import { mergeIntoList, shareOrCopy } from './share';
 import { KEYS, readJSON, writeJSON } from './storage';
 import { DEFAULT_MINUTES, PREVIEW_AT, planB as computePlanB, type PlanBItem } from './planb';
 import { clampT, defaultT } from './pulse';
@@ -45,6 +46,23 @@ class AppState {
   query = $state('');
   filters = $state<Filters>(emptyFilters());
   nowMode = $state(false);
+  /** Short message for the toast (set by components; App shows and clears it). */
+  message = $state<string | null>(null);
+  /** A link to show for copying by hand when neither sharing nor the clipboard works. */
+  manualLink = $state<string | null>(null);
+
+  /** Share a link (share sheet → clipboard → copy by hand) and report what happened. */
+  async share(url: string, title: string) {
+    const r = await shareOrCopy(url, title);
+    if (r === 'copied') this.message = 'Link copied';
+    else if (r === 'manual') this.manualLink = url;
+  }
+
+  /** A list someone shared with a `#list=` link: viewed until saved, closed or a day is picked. */
+  sharedList = $state.raw<{ ids: number[]; by?: string } | null>(null);
+  /** The "Save to my list / Just look" banner is showing. */
+  sharedBanner = $state(false);
+
   /** Pulse mode: the festival-at-a-glance timeline. `pulseT` is in festival minutes. */
   pulseOn = $state(false);
   pulseT = $state(defaultT());
@@ -64,6 +82,10 @@ class AppState {
   scopeEvents = $derived.by<AdeEvent[]>(() => {
     const d = this.data;
     if (!d) return [];
+    if (this.sharedList && !this.nowMode) {
+      const ids = new Set(this.sharedList.ids);
+      return d.events.filter((e) => ids.has(e.id));
+    }
     if (this.day === 'fav' && !this.nowMode) return d.events.filter((e) => this.favs.has(e.id));
     if (this.nowMode || this.day === 'all') return d.events;
     return d.eventsByDay.get(this.day) ?? [];
@@ -101,7 +123,7 @@ class AppState {
 
   /** Results in list order: by start time. */
   listEvents = $derived(
-    this.nowMode || this.day === 'all' || this.day === 'fav'
+    this.nowMode || this.sharedList || this.day === 'all' || this.day === 'fav'
       ? [...this.results].sort((a, b) => a.startMs - b.startMs)
       : this.results,
   );
@@ -150,7 +172,7 @@ class AppState {
     if (typeof window === 'undefined') return;
     this.applyHash(location.hash);
     if (this.selectedEventId) this.sheet = 'expanded';
-    else if (this.selectedVenueId) this.sheet = 'half';
+    else if (this.selectedVenueId || this.sharedList) this.sheet = 'half';
     window.addEventListener('popstate', () => this.applyHash(location.hash));
     // Keep favourites in sync across tabs.
     window.addEventListener('storage', (e) => {
@@ -163,11 +185,41 @@ class AppState {
   private applyHash(hash: string) {
     const h = parseHash(hash);
     if (h.day) this.day = h.day;
+    this.dayFromLink = !h.day;
+    if (h.list?.length) {
+      const known = this.sharedList?.ids.join() === h.list.join();
+      this.sharedList = { ids: h.list, by: h.by };
+      if (!known) this.sharedBanner = true;
+    } else this.sharedList = null;
     this.pulseOn = h.pulse !== undefined;
     if (h.pulse !== undefined) this.pulseT = clampT(h.pulse);
     this.selectedVenueId = h.venue ?? null;
     this.selectedEventId = h.event ?? null;
     this.chooser = null;
+    this.resolveLinkDay();
+  }
+
+  /** Set when the URL named a party/venue but no day: pick the day from the item. */
+  private dayFromLink = false;
+
+  /**
+   * `#e=<id>` / `#v=<id>` links carry no day: show the party's day, or a day the venue has
+   * parties on. Runs again once the programme has loaded.
+   */
+  resolveLinkDay() {
+    if (!this.dayFromLink || !this.data || this.sharedList) return;
+    if (this.day === 'all' || this.day === 'fav') return;
+    const ev = this.selectedEventId ? this.data.eventsById.get(this.selectedEventId) : undefined;
+    if (ev) {
+      this.day = ev.day;
+      this.dayFromLink = false;
+      return;
+    }
+    const venueEvents = this.selectedVenueId ? this.data.eventsByVenue.get(this.selectedVenueId) : undefined;
+    if (venueEvents?.length) {
+      if (!venueEvents.some((e) => e.day === this.day)) this.day = venueEvents[0].day;
+      this.dayFromLink = false;
+    }
   }
 
   writeHash(push: boolean) {
@@ -176,6 +228,8 @@ class AppState {
       venue: this.selectedVenueId ?? undefined,
       pulse: this.pulseOn ? this.pulseT : undefined,
       event: this.selectedEventId ?? undefined,
+      list: this.sharedList?.ids,
+      by: this.sharedList?.by,
     });
     if (hash === location.hash) return;
     if (push) history.pushState({ app: true }, '', hash);
@@ -184,6 +238,24 @@ class AppState {
 
   setDay(day: DayScope) {
     this.day = day;
+    this.sharedList = null;
+    this.sharedBanner = false;
+    this.writeHash(false);
+  }
+
+  /** Save the shared list into My list (no duplicates) and show My list. */
+  saveSharedList(): number {
+    if (!this.sharedList || !this.data) return 0;
+    const data = this.data;
+    const { ids, added } = mergeIntoList(this.favs, this.sharedList.ids, (id) => data.eventsById.has(id));
+    this.setFavs(ids);
+    this.setDay('fav');
+    return added;
+  }
+
+  closeSharedList() {
+    this.sharedList = null;
+    this.sharedBanner = false;
     this.writeHash(false);
   }
 

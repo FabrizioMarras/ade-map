@@ -2,6 +2,7 @@
   import { FACET_LABELS } from '../lib/facets';
   import { cleanDescription, icsUrl } from '../lib/format';
   import { directionsUrls } from '../lib/geo';
+  import { canShare, eventLink } from '../lib/share';
   import { ticketswapUrl } from '../lib/ticketswap';
   import { app } from '../lib/store.svelte';
   import { status, statusLabel, timeRange } from '../lib/time';
@@ -80,6 +81,9 @@
     <a class="btn" href={event.url} target="_blank" rel="noopener"><Icon name="external" />ADE page</a>
     <a class="btn" href={icsUrl(event.id)}><Icon name="calendar" />Add to calendar</a>
     <a class="btn" href={dirs.google} target="_blank" rel="noopener"><Icon name="route" />Directions</a>
+    <button class="btn" onclick={() => app.share(eventLink(event.id), event.title)}
+      ><Icon name="share" />{canShare ? 'Share' : 'Copy link'}</button
+    >
   </div>
   {#if event.soldOut}
     <p class="resale-note">Resale via TicketSwap · prices capped</p>

@@ -2,6 +2,7 @@
   import { activeFilterCount, applyQuery } from '../lib/filter';
   import { plural } from '../lib/format';
   import { clashes, exportFavs, importFavs } from '../lib/favs';
+  import { listLink, listTitle } from '../lib/share';
   import { groupByDay, groupByHour, nextDay, type Group } from '../lib/group';
   import { matchingArtists, search, tokens } from '../lib/search';
   import { KEYS, readJSON, writeJSON } from '../lib/storage';
@@ -19,8 +20,9 @@
 
   let afterMidnight = $state(readJSON(KEYS.afterMidnight, true));
   const toks = $derived(tokens(app.query));
-  const singleDay = $derived(!app.nowMode && app.day !== 'all' && app.day !== 'fav');
-  const favMode = $derived(!app.nowMode && app.day === 'fav');
+  const sharedMode = $derived(!app.nowMode && !!app.sharedList);
+  const singleDay = $derived(!app.nowMode && !sharedMode && app.day !== 'all' && app.day !== 'fav');
+  const favMode = $derived(!app.nowMode && !sharedMode && app.day === 'fav');
   const clashMap = $derived(
     clashes(app.data ? [...app.favs].map((id) => app.data!.eventsById.get(id)!).filter(Boolean) : []),
   );
@@ -37,7 +39,7 @@
   });
 
   const groups = $derived.by<Group[]>(() => {
-    if (favMode) return groupByDay(app.listEvents);
+    if (favMode || sharedMode) return groupByDay(app.listEvents);
     const g = groupByHour(app.listEvents, !singleDay);
     if (lateNight.length) g.push({ key: 'after', label: 'After midnight', events: lateNight, divider: true });
     return g;
@@ -69,6 +71,23 @@
     }
   }
 
+  /** Share My list as a link; asks once for an optional name ("Fabrizio's list"). */
+  async function shareList() {
+    let name = readJSON<string | null>(KEYS.name, null);
+    if (name === null) {
+      const typed = window.prompt('Your name, shown to people you share your list with (optional):', '');
+      if (typed === null) return; // cancelled
+      name = typed.trim().slice(0, 40);
+      writeJSON(KEYS.name, name);
+    }
+    const ids = [...app.listEvents].sort((a, b) => a.startMs - b.startMs).map((e) => e.id);
+    const { url, included } = listLink(ids, name);
+    await app.share(url, listTitle(name));
+    if (included < ids.length) {
+      onmessage(`Link holds the first ${included} of ${ids.length} parties (link length limit)`);
+    }
+  }
+
   function doImport() {
     const text = window.prompt('Paste an exported list (ADE2026-FAVS:…)');
     if (!text || !app.data) return;
@@ -95,7 +114,7 @@
       <EventCard
         event={e}
         showVenue
-        showDay={(!singleDay && !favMode) || g.divider}
+        showDay={(!singleDay && !favMode && !sharedMode) || g.divider}
         note={note(e)}
         {onopen}
       />
@@ -103,7 +122,9 @@
   </section>
 {:else}
   <div class="empty">
-    {#if favMode && !app.favs.size}
+    {#if sharedMode}
+      <p>None of these parties are in the programme any more.</p>
+    {:else if favMode && !app.favs.size}
       <p>Your list is empty. Tap ☆ on any party to add it.</p>
     {:else}
       <p>No parties match{app.nowMode ? ' right now' : ''}.</p>
@@ -130,6 +151,7 @@
 
 {#if favMode}
   <div class="actions transfer">
+    <button class="btn primary" disabled={!app.favs.size} onclick={shareList}>Share list</button>
     <button class="btn" disabled={!app.favs.size} onclick={doExport}>Export list</button>
     <button class="btn" onclick={doImport}>Import list</button>
   </div>

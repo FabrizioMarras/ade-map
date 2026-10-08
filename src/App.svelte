@@ -12,6 +12,8 @@
   import FilterSheet from './ui/FilterSheet.svelte';
   import MapControls from './ui/MapControls.svelte';
   import PlanBList from './ui/PlanBList.svelte';
+  import ManualLink from './ui/ManualLink.svelte';
+  import { listTitle } from './lib/share';
   import PulseDeck from './ui/PulseDeck.svelte';
   import { WALK_M_PER_MIN, circlePolygon } from './lib/planb';
   import { inValidBounds } from './lib/geo';
@@ -136,6 +138,7 @@
     loadData()
       .then((d) => {
         app.data = d;
+        app.resolveLinkDay(); // #e= / #v= links without a day
         loadDescriptions()
           .then((m) => (app.descriptions = m))
           .catch(() => {
@@ -219,6 +222,22 @@
     lastPlanB = key;
   });
 
+  // A shared list opens framed on its venues (they're often spread across the city).
+  let lastShared = '';
+  $effect(() => {
+    const key = app.sharedList && app.data && mapView ? app.sharedList.ids.join() : '';
+    if (key && key !== lastShared) queueMicrotask(fitResults);
+    lastShared = key;
+  });
+
+  // Messages from components (e.g. "Link copied") go to the toast.
+  $effect(() => {
+    if (app.message) {
+      toast = { text: app.message };
+      app.message = null;
+    }
+  });
+
   function fitResults() {
     if (app.area) return mapView?.fitTo(app.area);
     const ids = new Set(app.results.map((e) => e.venueId));
@@ -238,6 +257,7 @@
     if (app.drawMode) app.drawMode = null;
     else if (app.selectedEventId || app.selectedVenueId || app.chooser) app.back();
     else if (app.planB) app.closePlanB();
+    else if (app.sharedList) app.closeSharedList();
     else if (app.pulseOn) app.exitPulse();
     else if (app.area) app.clearArea();
   }
@@ -263,6 +283,9 @@
     {planBLocating}
     onmessage={(text) => (toast = { text })}
   />
+  {#if app.manualLink}
+    <ManualLink url={app.manualLink} onclose={() => (app.manualLink = null)} />
+  {/if}
   {#if toast}
     <Toast text={toast.text} action={toast.action} onclose={() => (toast = null)} />
   {/if}
@@ -309,6 +332,13 @@
               >
             </h2>
             <button class="btn" onclick={() => app.closePlanB()}>Close</button>
+          {:else if app.sharedList}
+            <h2 tabindex="-1" aria-live="polite">
+              {listTitle(app.sharedList.by)}<span class="sub"
+                >{plural(app.results.length, 'party', 'parties')} · shared with you</span
+              >
+            </h2>
+            <button class="btn" onclick={() => app.closeSharedList()}>Close</button>
           {:else if app.area}
             <h2 tabindex="-1" aria-live="polite">
               {plural(app.results.length, 'party', 'parties')} in this area<span class="sub">{dayLabel}</span>
@@ -356,6 +386,29 @@
         <VenueView venue={app.selectedVenue} />
       {:else if app.planB}
         <PlanBList onopen={openFromList} />
+      {:else if app.sharedList}
+        {#if app.sharedBanner}
+          <div class="shared-banner" role="region" aria-label="Shared list">
+            <p>
+              <strong>{listTitle(app.sharedList.by)}</strong> · {plural(
+                app.results.length,
+                'party',
+                'parties',
+              )}
+            </p>
+            <div class="actions">
+              <button
+                class="btn primary"
+                onclick={() => {
+                  const added = app.saveSharedList();
+                  toast = { text: `Added ${plural(added, 'party', 'parties')} to your list` };
+                }}>Save to my list</button
+              >
+              <button class="btn" onclick={() => (app.sharedBanner = false)}>Just look</button>
+            </div>
+          </div>
+        {/if}
+        <PartyList onopen={openFromList} onmessage={(text) => (toast = { text })} />
       {:else if !listVisible}
         <!-- The list is only built once the sheet opens: rendering 300+ cards up front
            costs ~1 s of main thread on a mid-range phone. -->
@@ -385,6 +438,19 @@
 </div>
 
 <style>
+  .shared-banner {
+    margin: 12px 16px 4px;
+    padding: 12px 14px 4px;
+    border-radius: var(--radius);
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+  }
+  .shared-banner p {
+    margin: 0;
+  }
+  .shared-banner .actions {
+    padding: 10px 0;
+  }
   .credits {
     padding: 16px;
     font-size: 13px;
