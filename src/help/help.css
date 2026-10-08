@@ -3,12 +3,18 @@
  * chips and map controls from src/ui/ui.css. Only the guide's layout is defined here.
  */
 
-/* The app shell locks scrolling; this is a normal scrolling page. */
+/* The app shell locks scrolling; this is a normal scrolling page. Only the root clips sideways
+   (clip, not hidden: no extra scroll container), and touch scrolling is not blocked by the
+   app's overscroll-behavior: none, which otherwise stops a swipe on phones. */
 html,
 body {
   height: auto;
   overflow: visible;
-  overflow-x: hidden;
+  overscroll-behavior: auto;
+}
+
+html {
+  overflow-x: clip;
 }
 
 html {
