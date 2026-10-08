@@ -1,4 +1,5 @@
 import '../app.css';
+import '../ui/ui.css';
 import './insights.css';
 import { applyStoredTheme } from '../lib/theme';
 import { asOfLabel, nowWall, parseWall } from '../lib/time';
@@ -464,7 +465,16 @@ async function main() {
     const asOf = asOfLabel(i.generated);
     const year = new Date().getFullYear();
     root.replaceChildren(
-      el('a', { class: 'back', href: '../' }, '← Back to the map'),
+      el(
+        'div',
+        { class: 'head-row' },
+        el('a', { class: 'back', href: '../' }, '← Back to the map'),
+        el(
+          'a',
+          { class: 'round-btn', href: './help/', 'aria-label': 'How to read these charts' },
+          el('span', { 'aria-hidden': 'true' }, '?'),
+        ),
+      ),
       el('h1', {}, 'Insights'),
       el('p', { class: 'asof' }, `Programme as of ${asOf}`),
       el(

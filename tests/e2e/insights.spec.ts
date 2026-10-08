@@ -56,3 +56,34 @@ test('insights page fits 400px without horizontal scroll', async ({ page }) => {
   );
   expect(overflow).toBeLessThanOrEqual(0);
 });
+
+test('the ? on Insights opens its guide, which links the JSON the page loads', async ({ page }) => {
+  const loaded: string[] = [];
+  page.on('request', (r) => r.url().endsWith('.json') && loaded.push(r.url()));
+  await page.goto('./insights/');
+  await expect(page.locator('section.card')).toHaveCount(6);
+  const insightsJson = loaded.find((u) => u.includes('insights.json'))!;
+  await page.getByRole('link', { name: 'How to read these charts' }).click();
+  await expect(page).toHaveURL(/\/insights\/help\/$/);
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2 }).first()).toHaveText(/What it is/);
+
+  const raw = page.getByRole('link', { name: 'insights.json' });
+  const href = await raw.evaluate((a) => (a as HTMLAnchorElement).href);
+  expect(href).toBe(insightsJson.split('?')[0]);
+  expect((await page.request.get(href)).ok()).toBe(true);
+  // Back to the charts; the map guide is linked too.
+  await expect(page.getByRole('link', { name: 'how to use the map' })).toHaveAttribute('href', '../../help/');
+  await page.getByRole('link', { name: 'Back to Insights' }).click();
+  await expect(page).toHaveURL(/\/insights\/$/);
+});
+
+test('insights guide fits 400px without horizontal scroll', async ({ page }) => {
+  await page.setViewportSize({ width: 400, height: 860 });
+  await page.goto('./insights/help/');
+  await expect(page.locator('section')).toHaveCount(5);
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(0);
+});

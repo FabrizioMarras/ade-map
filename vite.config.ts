@@ -17,7 +17,11 @@ function publicShellFiles(dir = 'public'): string[] {
 }
 
 /** Static pages besides the map, each its own Vite entry and precached for offline use. */
-const PAGES = { insights: 'insights/index.html', help: 'help/index.html' };
+const PAGES = {
+  insights: 'insights/index.html',
+  help: 'help/index.html',
+  'insights-help': 'insights/help/index.html',
+};
 
 /**
  * Builds src/sw.ts to /sw.js and injects the precache list (hashed assets + public

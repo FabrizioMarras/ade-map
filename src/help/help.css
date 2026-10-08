@@ -364,3 +364,21 @@ html {
     height: 88px;
   }
 }
+
+/* Insights guide: method list and the example questions */
+.meth {
+  margin: 0;
+  padding-left: 20px;
+  max-width: 62ch;
+}
+
+.meth li {
+  margin: 0 0 8px;
+}
+
+#help .q {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--surface);
+  font-style: italic;
+}

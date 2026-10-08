@@ -70,6 +70,13 @@ main {
 }
 
 /* Header: back link, display title, data date */
+.head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .back {
   display: inline-flex;
   align-items: center;
