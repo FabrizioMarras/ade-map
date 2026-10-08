@@ -332,7 +332,7 @@
       app.mapPins,
       coords,
       app.focusVenueId,
-      app.query.trim().length > 0,
+      app.query.trim().length > 0 || !!app.artist,
       app.filters.soldOut === 'resale',
     );
     if (!map || !styleReady) return;

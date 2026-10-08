@@ -13,6 +13,7 @@
   import MapControls from './ui/MapControls.svelte';
   import PlanBList from './ui/PlanBList.svelte';
   import NightPlan from './ui/NightPlan.svelte';
+  import ArtistView from './ui/ArtistView.svelte';
   import { dueReminders, notify, reminderText } from './lib/reminders';
   import { eventLink } from './lib/share';
   import ManualLink from './ui/ManualLink.svelte';
@@ -224,6 +225,17 @@
     lastPlanB = key;
   });
 
+  // An artist sheet opens framed on the venues of their sets.
+  let lastArtist = '';
+  $effect(() => {
+    const key = app.artist?.key ?? '';
+    if (key && key !== lastArtist && mapView) {
+      const pts = app.artistEvents.map((e) => [e.venue.lng, e.venue.lat] as [number, number]);
+      queueMicrotask(() => mapView?.fitTo(pts));
+    }
+    lastArtist = key;
+  });
+
   // The night plan opens framed on its stops (and re-frames when the night changes).
   let lastNight = '';
   $effect(() => {
@@ -285,6 +297,7 @@
     if (e.key !== 'Escape') return;
     if (app.drawMode) app.drawMode = null;
     else if (app.selectedEventId || app.selectedVenueId || app.chooser) app.back();
+    else if (app.artist) app.closeArtist();
     else if (app.nightPlan) app.closeNightPlan();
     else if (app.planB) app.closePlanB();
     else if (app.sharedList) app.closeSharedList();
@@ -355,6 +368,18 @@
             <button class="icon-btn" aria-label="Close" onclick={() => app.close()}
               ><Icon name="close" /></button
             >
+          {:else if app.artist}
+            <button class="icon-btn" aria-label="Back" onclick={() => app.closeArtist()}
+              ><Icon name="back" /></button
+            >
+            <h2 tabindex="-1" aria-live="polite">
+              {app.artist.name}<span class="sub"
+                >{plural(app.artistEvents.length, 'set')} · {plural(
+                  new Set(app.artistEvents.map((e) => e.day)).size,
+                  'day',
+                )}</span
+              >
+            </h2>
           {:else if app.nightPlan}
             <h2 tabindex="-1" aria-live="polite">
               Plan my night<span class="sub">{plural(app.nightStops.length, 'party', 'parties')} starred</span
@@ -420,6 +445,8 @@
         />
       {:else if app.selectedVenue}
         <VenueView venue={app.selectedVenue} />
+      {:else if app.artist}
+        <ArtistView onopen={openFromList} />
       {:else if app.nightPlan}
         <NightPlan onopen={openFromList} />
       {:else if app.planB}

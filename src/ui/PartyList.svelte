@@ -3,6 +3,7 @@
   import { plural } from '../lib/format';
   import { clashes, exportFavs, importFavs } from '../lib/favs';
   import { downloadIcs, eventsToIcs } from '../lib/ics';
+  import { searchArtists } from '../lib/artists';
   import { listLink } from '../lib/share';
   import { groupByDay, groupByHour, nextDay, type Group } from '../lib/group';
   import { matchingArtists, search, tokens } from '../lib/search';
@@ -52,6 +53,9 @@
       : 0,
   );
   const nextLabel = $derived(singleDay ? festivalDay(nextDay(app.day))?.short : undefined);
+
+  /** Artists matching the search: tap one for all their sets across the week. */
+  const artists = $derived(toks.length ? searchArtists(app.artistIndex, app.query) : []);
 
   function note(e: AdeEvent): string | undefined {
     const parts: string[] = [];
@@ -129,6 +133,22 @@
     writeJSON(KEYS.afterMidnight, afterMidnight);
   }
 </script>
+
+{#if artists.length}
+  <section class="artists" aria-label="Artists">
+    <h3 class="hour">Artists</h3>
+    <ul>
+      {#each artists as a (a.key)}
+        <li>
+          <button onclick={() => app.openArtist(a.key)}>
+            <span class="aname">{a.name}</span>
+            <span class="sets">{plural(a.eventIds.length, 'set')}</span>
+          </button>
+        </li>
+      {/each}
+    </ul>
+  </section>
+{/if}
 
 {#each groups as g (g.key)}
   <section class="group">
@@ -266,6 +286,38 @@
     text-transform: none;
     letter-spacing: 0;
     margin-left: 6px;
+  }
+  .artists ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .artists button {
+    width: 100%;
+    min-height: var(--tap);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    background: none;
+    text-align: left;
+  }
+  .artists button:hover {
+    background: var(--surface-2);
+  }
+  .aname {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 19px;
+    text-transform: uppercase;
+  }
+  .sets {
+    color: var(--muted);
+    font-size: 14px;
+    white-space: nowrap;
   }
   .reminders {
     margin: 0 0 8px;

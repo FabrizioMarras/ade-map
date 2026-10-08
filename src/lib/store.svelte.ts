@@ -1,6 +1,7 @@
 import { applyQuery, emptyFilters, inArea, type Filters } from './filter';
 import { spotKey, type LngLat } from './geo';
 import { formatHash, parseHash, type DayScope } from './hash';
+import { buildArtistIndex, type Artist } from './artists';
 import { mergeIntoList, shareOrCopy } from './share';
 import { KEYS, readJSON, writeJSON } from './storage';
 import { defaultNight, nightStops, planNight, type Leg, type TravelMode } from './nightplan';
@@ -126,6 +127,29 @@ class AppState {
       : [],
   );
 
+  /** Line-up index: artist → their sets across the week. */
+  artistIndex = $derived(this.data ? buildArtistIndex(this.data.events) : new Map<string, Artist>());
+  /** The artist sheet that is open (from a search), if any. */
+  artistKey = $state<string | null>(null);
+  artist = $derived(this.artistKey ? (this.artistIndex.get(this.artistKey) ?? null) : null);
+  artistEvents = $derived.by<AdeEvent[]>(() => {
+    const d = this.data;
+    if (!this.artist || !d) return [];
+    return this.artist.eventIds.map((id) => d.eventsById.get(id)).filter((e): e is AdeEvent => !!e);
+  });
+
+  openArtist(key: string) {
+    this.chooser = null;
+    this.selectedEventId = null;
+    this.selectedVenueId = null;
+    this.artistKey = key;
+    if (!this.wide && this.sheet === 'collapsed') this.sheet = 'half';
+  }
+
+  closeArtist() {
+    this.artistKey = null;
+  }
+
   /** Night planner (from My list): one night's starred parties as a route. */
   nightPlan = $state<{ night: string; mode: TravelMode } | null>(null);
 
@@ -155,6 +179,7 @@ class AppState {
   results = $derived.by<AdeEvent[]>(() => {
     if (this.planB) return this.planBItems.map((i) => i.event);
     if (this.nightPlan) return this.nightStops;
+    if (this.artist) return this.artistEvents;
     const r = applyQuery(this.scopeEvents, {
       filters: this.filters,
       query: this.query,
@@ -179,7 +204,8 @@ class AppState {
     if (this.nowMode) return this.results;
     // Plan B: the day's venues stay on the map (faded unless in the result), plus result venues
     // from another day (e.g. the preview Friday while Wednesday is selected).
-    if (this.planB || this.nightPlan) return [...new Set([...this.scopeEvents, ...this.results])];
+    if (this.planB || this.nightPlan || this.artist)
+      return [...new Set([...this.scopeEvents, ...this.results])];
     return this.scopeEvents;
   });
 

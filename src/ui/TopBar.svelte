@@ -67,6 +67,7 @@
             focusValue = null;
             if (app.selectedEventId || app.selectedVenueId || app.chooser) app.close();
             if (app.planB) app.closePlanB();
+            if (app.artistKey) app.closeArtist();
           }}
         />
         {#if app.query}
