@@ -46,6 +46,8 @@
     background: var(--surface-2);
   }
   .name {
+    min-width: 0;
+    overflow-wrap: anywhere;
     font-family: var(--font-display);
     font-weight: 700;
     font-size: 20px;

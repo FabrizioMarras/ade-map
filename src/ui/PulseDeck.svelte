@@ -255,7 +255,7 @@
     color: var(--deck-fg);
     background: #1d1d23;
     border: 1px solid #34343c;
-    border-radius: 8px;
+    border-radius: var(--r-box);
     padding: 0 12px;
     min-height: var(--tap);
   }
@@ -297,6 +297,6 @@
     place-items: center;
     width: var(--tap);
     padding: 0;
-    border-radius: 999px;
+    border-radius: var(--r-pill);
   }
 </style>

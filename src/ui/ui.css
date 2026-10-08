@@ -15,9 +15,8 @@
   font-size: 22px;
   line-height: 1.1;
   text-transform: uppercase;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  /* Long venue names wrap rather than being cut off. */
+  overflow-wrap: anywhere;
   padding-left: 8px;
 }
 .sheet-head .sub {
@@ -35,7 +34,7 @@
   display: grid;
   place-items: center;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: none;
 }
 .icon-btn:hover {
@@ -52,13 +51,31 @@
   align-items: center;
   gap: 6px;
   min-height: var(--tap);
+  max-width: 100%;
   padding: 0 14px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   border: 1px solid var(--line);
   background: var(--surface);
   font-weight: 600;
   font-size: 15px;
   text-decoration: none;
+  /* A pill never wraps: rows of buttons wrap to the next line instead. */
+  white-space: nowrap;
+}
+/* A dynamic label (e.g. the shop's own ticket text) is cut with an ellipsis, never overflows. */
+.btn .label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* A button whose label is a sentence: a box that wraps. */
+.btn.box {
+  border-radius: var(--r-box);
+  padding: 10px 14px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+  text-align: left;
 }
 .btn:hover {
   background: var(--surface-2);
@@ -85,12 +102,36 @@
   color: var(--muted);
 }
 .empty {
-  padding: 24px 16px;
+  box-sizing: border-box;
+  max-width: min(calc(100% - 32px), var(--measure));
+  margin: 16px auto;
+  padding: 14px;
+  border-radius: var(--r-box);
+  background: var(--surface-2);
   color: var(--muted);
   text-align: center;
+  overflow-wrap: anywhere;
+}
+.empty p {
+  margin: 0 0 6px;
 }
 .empty .btn {
-  margin-top: 12px;
+  margin: 8px 4px 0;
+}
+/* Messages that carry a sentence: banners, notes, previews. */
+.notice {
+  box-sizing: border-box;
+  max-width: var(--measure);
+  padding: 12px 14px;
+  border-radius: var(--r-box);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--fg);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.notice p {
+  margin: 0;
 }
 .sheet-head h2:focus {
   outline: none;
@@ -108,7 +149,7 @@
   display: grid;
   place-items: center;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: var(--surface);
   box-shadow: var(--shadow);
   color: var(--fg);
@@ -121,7 +162,7 @@
   display: grid;
   place-items: center;
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--r-box);
   background: var(--surface);
   box-shadow: var(--shadow);
 }
@@ -140,7 +181,7 @@
   flex: none;
   min-height: 36px;
   padding: 0 12px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   border: 1px solid var(--line);
   background: var(--surface);
   font-family: var(--font-display);

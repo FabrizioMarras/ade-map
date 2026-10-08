@@ -128,8 +128,8 @@
   .pulse-card {
     pointer-events: auto;
     max-width: 400px;
-    padding: 10px 14px;
-    border-radius: 10px;
+    padding: 12px 14px;
+    border-radius: var(--r-box);
     background: rgba(16, 16, 20, 0.88);
     backdrop-filter: blur(8px);
     border: 1px solid #2a2a31;
@@ -191,7 +191,7 @@
     gap: 8px;
     height: var(--tap);
     padding: 0 6px 0 14px;
-    border-radius: 999px;
+    border-radius: var(--r-pill);
     background: var(--surface);
     box-shadow: var(--shadow);
     color: var(--muted);
@@ -220,7 +220,7 @@
     display: grid;
     place-items: center;
     border: 0;
-    border-radius: 999px;
+    border-radius: var(--r-pill);
     background: var(--surface-2);
     color: var(--fg);
   }
@@ -231,7 +231,7 @@
     min-width: 20px;
     height: 20px;
     padding: 0 5px;
-    border-radius: 999px;
+    border-radius: var(--r-pill);
     background: var(--accent);
     color: var(--accent-ink);
     font-size: 12px;
@@ -245,7 +245,7 @@
     gap: 6px;
     min-height: 36px;
     padding: 0 12px;
-    border-radius: 999px;
+    border-radius: var(--r-pill);
     border: 1px solid var(--line);
     background: var(--surface);
     font-family: var(--font-display);

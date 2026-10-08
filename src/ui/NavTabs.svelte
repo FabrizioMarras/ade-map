@@ -77,7 +77,7 @@
   }
   .row .tab {
     min-height: 52px;
-    border-radius: 12px;
+    border-radius: var(--r-box);
   }
   .tab:focus-visible {
     outline: 3px solid var(--focus);
@@ -90,7 +90,7 @@
     place-items: center;
     width: 52px;
     height: 28px;
-    border-radius: 999px;
+    border-radius: var(--r-pill);
     transition: background-color 0.15s;
   }
   .tab[aria-current='page'] {
@@ -107,7 +107,7 @@
     min-width: 18px;
     height: 18px;
     padding: 0 4px;
-    border-radius: 999px;
+    border-radius: var(--r-pill);
     border: 2px solid var(--surface);
     background: var(--fg);
     color: var(--surface);

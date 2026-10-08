@@ -59,7 +59,7 @@
   </div>
 
   {#if stops.length < 2}
-    <p class="hint">
+    <p class="notice hint">
       Star at least two parties for {nightLabel(plan.night)} to plan a route between them.
     </p>
   {/if}
@@ -87,13 +87,13 @@
             <p class="flag">✕ You'd arrive after {l.to.title} has ended.</p>
           {/if}
           {#if l.ferry}
-            <p class="tip">
+            <p class="notice tip">
               ⛴ {FERRY[l.ferry]}
               <a href={GVB_F4} target="_blank" rel="noopener">GVB ferry times</a>
             </p>
           {/if}
           {#if l.nightBus}
-            <p class="tip">
+            <p class="notice tip">
               🌙 After 00:30 trams stop; GVB night buses (N81–N93) run from Centraal.
               <a href={GVB_NIGHT} target="_blank" rel="noopener">Night bus</a>
             </p>
@@ -125,7 +125,7 @@
   .chip {
     min-height: 36px;
     padding: 0 12px;
-    border-radius: 999px;
+    border-radius: var(--r-pill);
     border: 1px solid var(--line);
     background: var(--surface);
     font-weight: 600;
@@ -136,11 +136,16 @@
     color: var(--surface);
     border-color: var(--fg);
   }
-  .hint,
   .note {
     margin: 8px 16px;
     font-size: 14px;
     color: var(--muted);
+  }
+  .hint {
+    margin: 8px 16px;
+  }
+  .leg .tip {
+    margin: 6px 0;
   }
   .route {
     list-style: none;

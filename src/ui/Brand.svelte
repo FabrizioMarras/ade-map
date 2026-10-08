@@ -17,7 +17,7 @@
     top: calc(var(--safe-top) + 3px);
     right: 4px;
     padding: 1px 7px;
-    border-radius: 999px;
+    border-radius: var(--r-pill);
     background: color-mix(in srgb, var(--surface) 88%, transparent);
     color: var(--fg);
     font-size: 10px;

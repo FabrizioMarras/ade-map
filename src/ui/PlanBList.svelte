@@ -16,7 +16,7 @@
 
 <div class="planb">
   {#if pb.preview}
-    <p class="info preview">
+    <p class="notice preview">
       Plan B works during ADE, 21–25 Oct. Here's what it would show on <b>Fri 23 at 23:30</b>.
     </p>
   {/if}
@@ -30,7 +30,7 @@
   {:else}
     <div class="empty">
       <p>Nothing within {pb.minutes} minutes right now.</p>
-      <button class="btn primary" onclick={() => app.widenPlanB()}>Widen to {pb.minutes * 2} min</button>
+      <button class="btn primary box" onclick={() => app.widenPlanB()}>Widen to {pb.minutes * 2} min</button>
     </div>
   {/each}
 </div>
@@ -41,14 +41,11 @@
     font-size: 14px;
     color: var(--muted);
   }
-  .info.preview {
-    padding: 10px 12px;
-    margin-bottom: 4px;
-    border-radius: 10px;
-    background: var(--surface-2);
-    color: var(--fg);
+  .preview {
+    margin: 10px 16px 4px;
   }
-  .info + :global(.card) {
+  .info + :global(.card),
+  .preview + :global(.card) {
     margin-top: 8px;
     border-top: 1px solid var(--line);
   }

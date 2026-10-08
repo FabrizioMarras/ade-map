@@ -47,6 +47,8 @@
     const cur = app.filters[k];
     app.filters[k] = cur.includes(tag) ? cur.filter((t) => t !== tag) : [...cur, tag];
   }
+  /** Chip labels longer than this may wrap on a 360px phone, so they are drawn as boxes. */
+  const WRAP_AT = 30;
 </script>
 
 <dialog bind:this={dialog} onclose={() => (open = false)} aria-labelledby="filters-title">
@@ -71,6 +73,7 @@
         {#each SOLD_OUT_OPTIONS as [mode, label] (mode)}
           <button
             class="chip"
+            class:wrap={label.length > WRAP_AT}
             role="radio"
             aria-checked={app.filters.soldOut === mode}
             onclick={() => (app.filters.soldOut = mode)}>{label}</button
@@ -86,13 +89,15 @@
           <legend>{FACET_LABELS[k]}</legend>
           <div class="chips">
             {#each showAll[k] ? opts : opts.slice(0, LIMIT) as [tag, n] (tag)}
+              {@const label = k === 'time' ? TIME_LABELS[tag] : tag}
               <button
                 class="chip"
+                class:wrap={label.length > WRAP_AT}
                 aria-pressed={app.filters[k].includes(tag)}
                 disabled={n === 0 && !app.filters[k].includes(tag)}
                 onclick={() => toggle(k, tag)}
               >
-                {k === 'time' ? TIME_LABELS[tag] : tag}
+                {label}
                 <span class="n tnum">{n}</span>
               </button>
             {/each}
@@ -142,7 +147,7 @@
       height: auto;
       max-height: 85vh;
       margin: auto;
-      border-radius: 18px;
+      border-radius: var(--r-box);
     }
   }
   .head {
@@ -203,10 +208,19 @@
     align-items: center;
     min-height: 40px;
     padding: 0 12px;
-    border-radius: 999px;
+    border-radius: var(--r-pill);
     border: 1px solid var(--line);
     background: var(--surface);
     font-size: 15px;
+    white-space: nowrap;
+  }
+  /* A label long enough to wrap on a phone is a box, never a two-line pill. */
+  .chip.wrap {
+    border-radius: var(--r-box);
+    padding: 8px 12px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: left;
   }
   .chip[aria-pressed='true'],
   .chip[aria-checked='true'] {

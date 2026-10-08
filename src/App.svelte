@@ -22,7 +22,7 @@
   import { inValidBounds } from './lib/geo';
   import Sparkline from './ui/Sparkline.svelte';
   import { histogram, pulseEvents } from './lib/pulse';
-  import Toast from './ui/Toast.svelte';
+  import Toasts from './ui/Toasts.svelte';
   import PartyList from './ui/PartyList.svelte';
   import VenueList from './ui/VenueList.svelte';
   import TopBar from './ui/TopBar.svelte';
@@ -37,7 +37,6 @@
   let sheet: Sheet | undefined = $state();
   let sheetVisible = $state(0);
   let filtersOpen = $state(false);
-  let toast = $state<{ text: string; action?: { label: string; run: () => void } } | null>(null);
 
   const narrowed = $derived(
     !!app.query.trim() || app.nowMode || activeFilterCount(app.filters) > 0 || !!app.area,
@@ -59,6 +58,8 @@
   const tabBar = $derived(!app.wide && !app.pulseOn);
   let tabBarHeight = $state(0);
   const tabInset = $derived(tabBar ? tabBarHeight : 0);
+  // Toasts sit just above the tab bar, or above the Pulse deck when it is shown.
+  const toastBottom = $derived((app.pulseOn ? deckHeight : tabInset) + 12);
   const bottomCover = $derived(
     app.pulseOn && !(sheetShown && !app.wide) ? deckHeight : app.wide ? 0 : sheetVisible + tabInset,
   );
@@ -98,10 +99,7 @@
       const meta = await fetchMeta();
       if (!meta) return;
       if (programmeChanged(app.data, meta)) {
-        toast = {
-          text: 'Updated programme available',
-          action: { label: 'Reload', run: () => location.reload() },
-        };
+        app.notify('Updated programme available', { label: 'Reload', run: () => location.reload() });
       } else if (meta.generated > (app.checkedAt ?? app.data.generated)) {
         // Re-checked with no changes: the programme on screen is current as of now.
         app.checkedAt = meta.generated;
@@ -221,7 +219,7 @@
         const { latitude: lat, longitude: lng } = pos.coords;
         if (inValidBounds(lat, lng)) app.startPlanB([lng, lat], 'location');
         else {
-          toast = { text: 'You seem to be outside Amsterdam — using the map centre' };
+          app.notify('You seem to be outside Amsterdam, so Plan B starts from the centre of the map instead');
           fromCentre();
         }
       },
@@ -288,14 +286,6 @@
     }
   });
 
-  // Messages from components (e.g. "Link copied") go to the toast.
-  $effect(() => {
-    if (app.message) {
-      toast = { text: app.message };
-      app.message = null;
-    }
-  });
-
   function fitResults() {
     if (app.area) return mapView?.fitTo(app.area);
     const ids = new Set(app.results.map((e) => e.venueId));
@@ -342,14 +332,12 @@
     onfit={fitResults}
     onplanb={() => (app.planB ? app.closePlanB() : startPlanB())}
     {planBLocating}
-    onmessage={(text) => (toast = { text })}
+    onmessage={(text) => app.notify(text)}
   />
   {#if app.manualLink}
     <ManualLink url={app.manualLink} onclose={() => (app.manualLink = null)} />
   {/if}
-  {#if toast}
-    <Toast text={toast.text} action={toast.action} onclose={() => (toast = null)} />
-  {/if}
+  <Toasts bottom={toastBottom} />
 
   {#if app.pulseOn && app.data}
     <PulseDeck events={pulseData} {bins} bind:height={deckHeight} />
@@ -473,7 +461,7 @@
         <PlanBList onopen={openFromList} />
       {:else if app.sharedList}
         {#if app.sharedBanner}
-          <div class="shared-banner" role="region" aria-label="Shared list">
+          <div class="notice shared-banner" role="region" aria-label="Shared list">
             <p>
               <strong>Shared list</strong> · {plural(app.results.length, 'party', 'parties')}
             </p>
@@ -482,21 +470,21 @@
                 class="btn primary"
                 onclick={() => {
                   const added = app.saveSharedList();
-                  toast = { text: `Added ${plural(added, 'party', 'parties')} to your list` };
+                  app.notify(`Added ${plural(added, 'party', 'parties')} to your list`);
                 }}>Save to my list</button
               >
               <button class="btn" onclick={() => (app.sharedBanner = false)}>Just look</button>
             </div>
           </div>
         {/if}
-        <PartyList onopen={openFromList} onmessage={(text) => (toast = { text })} />
+        <PartyList onopen={openFromList} onmessage={(text) => app.notify(text)} />
       {:else if !listVisible}
         <!-- The list is only built once the sheet opens: rendering 300+ cards up front
            costs ~1 s of main thread on a mid-range phone. -->
       {:else if app.listMode === 'venues'}
         <VenueList />
       {:else}
-        <PartyList onopen={openFromList} onmessage={(text) => (toast = { text })} />
+        <PartyList onopen={openFromList} onmessage={(text) => app.notify(text)} />
       {/if}
     </Sheet>
   {/if}
@@ -512,22 +500,16 @@
 <style>
   .shared-banner {
     margin: 12px 16px 4px;
-    padding: 12px 14px 4px;
-    border-radius: var(--radius);
-    background: var(--surface-2);
-    border: 1px solid var(--line);
-  }
-  .shared-banner p {
-    margin: 0;
+    font-size: 15px;
   }
   .shared-banner .actions {
-    padding: 10px 0;
+    padding: 10px 0 0;
   }
   .seg {
     display: flex;
     flex: none;
     border: 1px solid var(--line);
-    border-radius: 999px;
+    border-radius: var(--r-pill);
     padding: 2px;
   }
   .seg button {
@@ -536,7 +518,7 @@
     display: grid;
     place-items: center;
     border: 0;
-    border-radius: 999px;
+    border-radius: var(--r-pill);
     background: none;
   }
   .seg button[aria-pressed='true'] {

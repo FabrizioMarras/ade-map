@@ -149,7 +149,7 @@
     bottom: 0;
     height: var(--sheet-h);
     background: var(--surface);
-    border-radius: 18px 18px 0 0;
+    border-radius: var(--r-sheet) var(--r-sheet) 0 0;
     box-shadow: var(--shadow);
     display: flex;
     flex-direction: column;
@@ -192,7 +192,7 @@
     margin: 0 auto;
     width: 40px;
     height: 5px;
-    border-radius: 3px;
+    border-radius: var(--r-pill);
     background: var(--line);
   }
   .body {

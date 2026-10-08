@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import Dialog from './Dialog.svelte';
 
   // Shown when neither the share sheet nor the clipboard is available: the link, selected.
   let { url, onclose }: { url: string; onclose: () => void } = $props();
@@ -11,46 +12,27 @@
   });
 </script>
 
-<div class="manual" role="dialog" aria-label="Copy this link">
+<Dialog title="Copy this link" buttons={[{ label: 'Done', primary: true }]} {onclose}>
   <label>
-    <span>Copy this link</span>
+    <span>Select the link and copy it</span>
     <input bind:this={input} readonly value={url} onfocus={(e) => e.currentTarget.select()} />
   </label>
-  <button class="btn" onclick={onclose}>Done</button>
-</div>
+</Dialog>
 
 <style>
-  .manual {
-    position: fixed;
-    left: 12px;
-    right: 12px;
-    top: calc(var(--safe-top) + 124px);
-    z-index: 31;
-    display: flex;
-    gap: 8px;
-    align-items: flex-end;
-    max-width: 560px;
-    margin: 0 auto;
-    padding: 12px;
-    border-radius: var(--radius);
-    background: var(--surface);
-    box-shadow: var(--shadow);
-  }
   label {
-    flex: 1;
-    min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    font-size: 13px;
-    font-weight: 700;
+    gap: 6px;
+    font-size: 14px;
     color: var(--muted);
   }
   input {
+    min-width: 0;
     min-height: var(--tap);
     padding: 0 10px;
     border: 1px solid var(--line);
-    border-radius: 10px;
+    border-radius: var(--r-box);
     background: var(--surface-2);
     font-size: 15px;
     color: var(--fg);

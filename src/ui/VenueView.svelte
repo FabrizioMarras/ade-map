@@ -59,7 +59,7 @@
     </p>
   {/each}
   {#if hidden && shown.length}
-    <p class="hint">{plural(hidden, 'more party', 'more parties')} hidden by filters or search.</p>
+    <p class="notice hint">{plural(hidden, 'more party', 'more parties')} hidden by filters or search.</p>
   {/if}
 
   {#if otherDays.length}
@@ -77,7 +77,5 @@
   }
   .hint {
     margin: 8px 16px;
-    font-size: 14px;
-    color: var(--muted);
   }
 </style>

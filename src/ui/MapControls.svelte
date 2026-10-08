@@ -134,13 +134,15 @@
     flex-direction: column;
     align-items: center;
     gap: 8px;
-    padding: 10px 12px;
-    border-radius: var(--radius);
+    padding: 12px 14px;
+    border-radius: var(--r-box);
     background: var(--fg);
     color: var(--surface);
     font-weight: 700;
     box-shadow: var(--shadow);
-    white-space: nowrap;
+    max-width: min(calc(100vw - 24px), var(--measure));
+    text-align: center;
+    overflow-wrap: anywhere;
   }
   .seg {
     display: flex;
@@ -152,7 +154,7 @@
     gap: 6px;
     min-height: 40px;
     padding: 0 12px;
-    border-radius: 999px;
+    border-radius: var(--r-pill);
     border: 1px solid currentColor;
     background: none;
     color: inherit;

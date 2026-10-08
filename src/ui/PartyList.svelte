@@ -58,12 +58,13 @@
   const artists = $derived(toks.length ? searchArtists(app.artistIndex, app.query) : []);
 
   function note(e: AdeEvent): string | undefined {
-    const parts: string[] = [];
     const hits = matchingArtists(e, toks);
-    if (hits.length) parts.push(`With ${hits.join(', ')}`);
+    return hits.length ? `With ${hits.join(', ')}` : undefined;
+  }
+
+  function clashNote(e: AdeEvent): string | undefined {
     const clash = app.favs.has(e.id) ? clashMap.get(e.id) : undefined;
-    if (clash?.length) parts.push(`⚠ Clashes with ${clash.map((c) => c.title).join(', ')}`);
-    return parts.join(' · ') || undefined;
+    return clash?.length ? `⚠ Clashes with ${clash.map((c) => c.title).join(', ')}` : undefined;
   }
 
   /**
@@ -208,6 +209,7 @@
         showVenue
         showDay={(!singleDay && !favMode && !sharedMode) || g.divider}
         note={note(e)}
+        clash={clashNote(e)}
         {onopen}
       />
     {/each}
@@ -234,8 +236,8 @@
 {/each}
 
 {#if elsewhere}
-  <div class="empty">
-    <button class="btn" onclick={() => app.setDay('all')}>
+  <div class="more-days">
+    <button class="btn box" onclick={() => app.setDay('all')}>
       {plural(elsewhere, 'more match', 'more matches')} on other days
     </button>
   </div>
@@ -334,7 +336,7 @@
   .transfer-panel {
     margin: 0 16px 12px;
     padding: 12px;
-    border-radius: var(--radius);
+    border-radius: var(--r-box);
     background: var(--surface-2);
     border: 1px solid var(--line);
     display: flex;
@@ -359,13 +361,18 @@
     min-height: var(--tap);
     padding: 8px 10px;
     border: 1px solid var(--line);
-    border-radius: 10px;
+    border-radius: var(--r-box);
     background: var(--surface);
     color: var(--fg);
     font: 15px/1.3 var(--font-body);
   }
   .transfer {
     justify-content: center;
+  }
+  .more-days {
+    display: flex;
+    justify-content: center;
+    padding: 12px 16px;
   }
   .setting {
     display: flex;

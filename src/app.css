@@ -4,7 +4,13 @@
   --accent: #ffd400;
   --accent-ink: #000000;
   --live: #007550;
-  --radius: 14px;
+  /* Radii: pills only for single-line, fixed-height things that never wrap; boxes for anything
+     that carries a sentence or can grow; sheets for the top corners of sheets only. */
+  --r-pill: 999px;
+  --r-box: 12px;
+  --r-sheet: 18px;
+  /* Comfortable line length for messages on phones (~36–40 characters). */
+  --measure: 40ch;
   --tap: 44px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);

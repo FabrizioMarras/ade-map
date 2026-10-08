@@ -10,12 +10,14 @@
     showVenue?: boolean;
     showDay?: boolean;
     note?: string;
+    /** A warning about this party (a clash in My list), shown as a box. */
+    clash?: string;
     /** Show sold out as 'Sold out · TicketSwap' (Plan B, or the TicketSwap filter mode). */
     resale?: boolean;
     onopen?: (e: AdeEvent) => void;
   }
 
-  let { event, showVenue = false, showDay = false, note, resale = false, onopen }: Props = $props();
+  let { event, showVenue = false, showDay = false, note, clash, resale = false, onopen }: Props = $props();
   const st = $derived(status(event, app.now));
 </script>
 
@@ -30,6 +32,7 @@
     <span class="title">{event.title}</span>
     {#if showVenue}<span class="venue">{event.venue.name}</span>{/if}
     {#if note}<span class="note">{note}</span>{/if}
+    {#if clash}<span class="note clash">{clash}</span>{/if}
     <span class="tags">
       {#if event.soldOut && (resale || app.filters.soldOut === 'resale')}<span class="tag resale"
           >Sold out · TicketSwap</span
@@ -114,6 +117,17 @@
     font-size: 14px;
     color: var(--muted);
   }
+  .clash {
+    align-self: flex-start;
+    max-width: 100%;
+    margin: 4px 0 2px;
+    padding: 12px;
+    border-radius: var(--r-box);
+    border: 1px solid var(--line);
+    background: var(--surface-2);
+    color: var(--fg);
+    overflow-wrap: anywhere;
+  }
   .tags {
     display: flex;
     flex-wrap: wrap;
@@ -121,9 +135,13 @@
     margin-top: 2px;
   }
   .tag {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     font-size: 12px;
     padding: 1px 7px;
-    border-radius: 999px;
+    border-radius: var(--r-pill);
     background: var(--chip);
   }
   .tag.resale {

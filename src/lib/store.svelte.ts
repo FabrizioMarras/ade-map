@@ -14,6 +14,17 @@ import { resolveTheme, type ThemePref } from './theme';
 export type { ThemePref };
 export type SheetSnap = 'collapsed' | 'half' | 'expanded';
 
+export interface Toast {
+  id: number;
+  text: string;
+  action?: { label: string; run: () => void };
+}
+
+/** How long a toast stays: longer text gets more time to read. */
+export function toastTimeout(text: string): number {
+  return text.length > 60 ? 7000 : 4000;
+}
+
 export interface VenuePin {
   venue: Venue;
   count: number;
@@ -52,15 +63,27 @@ class AppState {
   query = $state('');
   filters = $state<Filters>(emptyFilters());
   nowMode = $state(false);
-  /** Short message for the toast (set by components; App shows and clears it). */
-  message = $state<string | null>(null);
+  /** Toasts on screen, oldest first (see notify). */
+  toasts = $state<Toast[]>([]);
+  private toastId = 0;
+
+  /** Show a short message; it dismisses itself (4 s, or 7 s for longer text). */
+  notify(text: string, action?: Toast['action']) {
+    const id = ++this.toastId;
+    // The same message again replaces the old one instead of stacking duplicates.
+    this.toasts = [...this.toasts.filter((t) => t.text !== text), { id, text, action }].slice(-3);
+  }
+
+  dismissToast(id: number) {
+    this.toasts = this.toasts.filter((t) => t.id !== id);
+  }
   /** A link to show for copying by hand when neither sharing nor the clipboard works. */
   manualLink = $state<string | null>(null);
 
   /** Share a link (share sheet → clipboard → copy by hand) and report what happened. */
   async share(url: string, title: string) {
     const r = await shareOrCopy(url, title);
-    if (r === 'copied') this.message = 'Link copied';
+    if (r === 'copied') this.notify('Link copied');
     else if (r === 'manual') this.manualLink = url;
   }
 

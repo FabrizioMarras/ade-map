@@ -75,7 +75,7 @@
       >
     {:else if event.ticketUrl}
       <a class="btn primary" href={event.ticketUrl} target="_blank" rel="noopener"
-        ><Icon name="ticket" />{event.ticketText || 'Buy tickets'}</a
+        ><Icon name="ticket" /><span class="label">{event.ticketText || 'Buy tickets'}</span></a
       >
     {/if}
     <a class="btn" href={event.url} target="_blank" rel="noopener"><Icon name="external" />ADE page</a>
@@ -86,9 +86,9 @@
     >
   </div>
   {#if event.soldOut}
-    <p class="resale-note">Resale via TicketSwap · prices capped</p>
+    <p class="notice resale-note">Resale via TicketSwap · prices capped</p>
   {:else if event.ticketUrl}
-    <p class="resale-note">
+    <p class="notice resale-note">
       <a href={resaleUrl} target="_blank" rel="noopener">Resale on TicketSwap</a>
     </p>
   {/if}
@@ -179,21 +179,21 @@
     padding: 10px 12px;
     text-align: left;
     border: 1px solid var(--line);
-    border-radius: var(--radius);
+    border-radius: var(--r-box);
     background: var(--surface-2);
   }
   .venue span {
+    min-width: 0;
     display: flex;
     flex-direction: column;
+    overflow-wrap: anywhere;
   }
   .addr {
     color: var(--muted);
     font-size: 14px;
   }
   .resale-note {
-    margin: -4px 16px 4px;
-    font-size: 14px;
-    color: var(--muted);
+    margin: 0 16px 8px;
   }
   .resale-note a {
     color: var(--fg);
@@ -239,7 +239,11 @@
   .chips li {
     font-size: 14px;
     padding: 3px 10px;
-    border-radius: 999px;
+    border-radius: var(--r-pill);
     background: var(--chip);
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 </style>

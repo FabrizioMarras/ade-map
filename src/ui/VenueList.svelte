@@ -52,6 +52,8 @@
     background: var(--surface-2);
   }
   .name {
+    min-width: 0;
+    overflow-wrap: anywhere;
     display: flex;
     flex-direction: column;
     font-family: var(--font-display);

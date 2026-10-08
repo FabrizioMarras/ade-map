@@ -107,7 +107,7 @@
     overflow-y: auto;
     padding: 8px 12px 12px;
     background: var(--surface);
-    border-radius: 18px 18px 0 0;
+    border-radius: var(--r-sheet) var(--r-sheet) 0 0;
     border-top: 1px solid var(--line);
     box-shadow: var(--shadow);
     animation: rise 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -115,7 +115,7 @@
   .more.wide {
     right: auto;
     width: 400px;
-    border-radius: 0 18px 0 0;
+    border-radius: 0 var(--r-sheet) 0 0;
   }
   .row {
     width: 100%;
@@ -145,7 +145,7 @@
     height: 40px;
     display: grid;
     place-items: center;
-    border-radius: 12px;
+    border-radius: var(--r-box);
     background: var(--surface-2);
   }
   .lbl {
