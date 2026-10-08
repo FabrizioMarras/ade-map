@@ -3,6 +3,7 @@ import { spotKey, type LngLat } from './geo';
 import { formatHash, parseHash, type DayScope } from './hash';
 import { mergeIntoList, shareOrCopy } from './share';
 import { KEYS, readJSON, writeJSON } from './storage';
+import { defaultNight, nightStops, planNight, type Leg, type TravelMode } from './nightplan';
 import { DEFAULT_MINUTES, PREVIEW_AT, planB as computePlanB, type PlanBItem } from './planb';
 import { clampT, defaultT } from './pulse';
 import { defaultDay, isFestivalTime, nowWall } from './time';
@@ -111,9 +112,35 @@ class AppState {
       : [],
   );
 
-  /** Events after every filter: the result set. (Plan B replaces it with its own list.) */
+  /** Night planner (from My list): one night's starred parties as a route. */
+  nightPlan = $state<{ night: string; mode: TravelMode } | null>(null);
+
+  /** Nights (06:00 → 06:00) that have starred parties, in order. */
+  starredNights = $derived.by<string[]>(() => {
+    if (!this.data) return [];
+    const nights = new Set<string>();
+    for (const id of this.favs) {
+      const e = this.data.eventsById.get(id);
+      if (e) nights.add(new Date(e.startMs - 6 * 3_600_000).toISOString().slice(0, 10));
+    }
+    return [...nights].sort();
+  });
+
+  nightStops = $derived.by<AdeEvent[]>(() => {
+    if (!this.nightPlan || !this.data) return [];
+    const data = this.data;
+    const starred = [...this.favs].map((id) => data.eventsById.get(id)).filter((e): e is AdeEvent => !!e);
+    return nightStops(starred, this.nightPlan.night);
+  });
+
+  nightLegs = $derived.by<Leg[]>(() =>
+    this.nightPlan ? planNight(this.nightStops, this.nightPlan.mode) : [],
+  );
+
+  /** Events after every filter: the result set. (Plan B and the night planner replace it.) */
   results = $derived.by<AdeEvent[]>(() => {
     if (this.planB) return this.planBItems.map((i) => i.event);
+    if (this.nightPlan) return this.nightStops;
     const r = applyQuery(this.scopeEvents, {
       filters: this.filters,
       query: this.query,
@@ -138,7 +165,7 @@ class AppState {
     if (this.nowMode) return this.results;
     // Plan B: the day's venues stay on the map (faded unless in the result), plus result venues
     // from another day (e.g. the preview Friday while Wednesday is selected).
-    if (this.planB) return [...new Set([...this.scopeEvents, ...this.results])];
+    if (this.planB || this.nightPlan) return [...new Set([...this.scopeEvents, ...this.results])];
     return this.scopeEvents;
   });
 
@@ -270,7 +297,25 @@ class AppState {
     else history.replaceState(history.state, '', hash);
   }
 
+  /** Open the night planner on tonight (during the festival) or the first starred night. */
+  openNightPlan() {
+    const night = defaultNight(this.starredNights, this.now);
+    if (!night) return;
+    this.chooser = null;
+    this.selectedEventId = null;
+    this.selectedVenueId = null;
+    this.planB = null;
+    this.nightPlan = { night, mode: this.nightPlan?.mode ?? 'walk' };
+    this.writeHash(false);
+    if (!this.wide && this.sheet === 'collapsed') this.sheet = 'half';
+  }
+
+  closeNightPlan() {
+    this.nightPlan = null;
+  }
+
   setDay(day: DayScope) {
+    this.nightPlan = null;
     this.day = day;
     this.sharedList = null;
     this.sharedBanner = false;

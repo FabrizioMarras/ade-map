@@ -166,6 +166,17 @@ export function addAppLayers(map: MlMap, theme: 'light' | 'dark') {
     },
   });
 
+  // Night planner: route through the starred parties, with numbered stops.
+  map.addSource('route', { type: 'geojson', data: empty });
+  map.addLayer({
+    id: 'route-line',
+    type: 'line',
+    source: 'route',
+    filter: ['==', ['geometry-type'], 'LineString'],
+    layout: { 'line-join': 'round', 'line-cap': 'round' },
+    paint: { 'line-color': theme === 'dark' ? '#f4f4f0' : '#121212', 'line-width': 3, 'line-opacity': 0.85 },
+  });
+
   map.addSource('venues', { type: 'geojson', data: empty });
   map.addLayer({
     id: 'pins',
@@ -252,6 +263,33 @@ export function addAppLayers(map: MlMap, theme: 'light' | 'dark') {
     },
   });
 
+  map.addLayer({
+    id: 'route-stop',
+    type: 'circle',
+    source: 'route',
+    filter: ['==', ['geometry-type'], 'Point'],
+    paint: {
+      'circle-radius': 11,
+      'circle-color': COLORS.accent,
+      'circle-stroke-color': '#000000',
+      'circle-stroke-width': 2,
+    },
+  });
+  map.addLayer({
+    id: 'route-stop-n',
+    type: 'symbol',
+    source: 'route',
+    filter: ['==', ['geometry-type'], 'Point'],
+    layout: {
+      'text-field': ['to-string', ['get', 'n']],
+      'text-font': FONT_BOLD,
+      'text-size': 12,
+      'text-allow-overlap': true,
+      'text-ignore-placement': true,
+    },
+    paint: { 'text-color': '#000000' },
+  });
+
   map.addSource('me', { type: 'geojson', data: empty });
   map.addLayer({
     id: 'me',
@@ -289,6 +327,9 @@ export const NORMAL_LAYERS = [
   'planb-fill',
   'planb-line',
   'planb-origin',
+  'route-line',
+  'route-stop',
+  'route-stop-n',
 ];
 
 const P = {

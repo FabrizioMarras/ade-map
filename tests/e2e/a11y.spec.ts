@@ -11,6 +11,7 @@ const audit = (page: import('@playwright/test').Page) =>
 
 for (const theme of ['light', 'dark'] as const) {
   test(`no axe violations (${theme})`, async ({ page }) => {
+    test.setTimeout(60_000); // four full-page audits
     await page.addInitScript((t) => localStorage.setItem('ade2026.theme.v1', JSON.stringify(t)), theme);
     await page.clock.setFixedTime(new Date('2026-10-23T10:00:00Z'));
     await page.goto('./#d=23');

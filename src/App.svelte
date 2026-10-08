@@ -12,6 +12,7 @@
   import FilterSheet from './ui/FilterSheet.svelte';
   import MapControls from './ui/MapControls.svelte';
   import PlanBList from './ui/PlanBList.svelte';
+  import NightPlan from './ui/NightPlan.svelte';
   import ManualLink from './ui/ManualLink.svelte';
   import PulseDeck from './ui/PulseDeck.svelte';
   import { WALK_M_PER_MIN, circlePolygon } from './lib/planb';
@@ -221,6 +222,17 @@
     lastPlanB = key;
   });
 
+  // The night plan opens framed on its stops (and re-frames when the night changes).
+  let lastNight = '';
+  $effect(() => {
+    const key = app.nightPlan ? `${app.nightPlan.night}|${app.nightStops.map((e) => e.id).join()}` : '';
+    if (key && key !== lastNight && mapView) {
+      const pts = app.nightStops.map((e) => [e.venue.lng, e.venue.lat] as [number, number]);
+      queueMicrotask(() => mapView?.fitTo(pts));
+    }
+    lastNight = key;
+  });
+
   // A shared list opens framed on its venues (they're often spread across the city).
   let lastShared = '';
   $effect(() => {
@@ -255,6 +267,7 @@
     if (e.key !== 'Escape') return;
     if (app.drawMode) app.drawMode = null;
     else if (app.selectedEventId || app.selectedVenueId || app.chooser) app.back();
+    else if (app.nightPlan) app.closeNightPlan();
     else if (app.planB) app.closePlanB();
     else if (app.sharedList) app.closeSharedList();
     else if (app.pulseOn) app.exitPulse();
@@ -324,6 +337,12 @@
             <button class="icon-btn" aria-label="Close" onclick={() => app.close()}
               ><Icon name="close" /></button
             >
+          {:else if app.nightPlan}
+            <h2 tabindex="-1" aria-live="polite">
+              Plan my night<span class="sub">{plural(app.nightStops.length, 'party', 'parties')} starred</span
+              >
+            </h2>
+            <button class="btn" onclick={() => app.closeNightPlan()}>Close</button>
           {:else if app.planB}
             <h2 tabindex="-1" aria-live="polite">
               Plan B<span class="sub"
@@ -383,6 +402,8 @@
         />
       {:else if app.selectedVenue}
         <VenueView venue={app.selectedVenue} />
+      {:else if app.nightPlan}
+        <NightPlan onopen={openFromList} />
       {:else if app.planB}
         <PlanBList onopen={openFromList} />
       {:else if app.sharedList}

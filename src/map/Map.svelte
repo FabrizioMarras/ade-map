@@ -295,6 +295,32 @@
     });
   });
 
+  // Night planner route (re-applied after a style switch).
+  $effect(() => {
+    const stops = app.nightPlan ? app.nightStops : [];
+    if (!map || !styleReady) return;
+    const pts = stops.map((s) => [s.venue.lng, s.venue.lat] as LngLat);
+    (map.getSource('route') as GeoJSONSource | undefined)?.setData({
+      type: 'FeatureCollection',
+      features: [
+        ...(pts.length > 1
+          ? [
+              {
+                type: 'Feature' as const,
+                properties: {},
+                geometry: { type: 'LineString' as const, coordinates: pts },
+              },
+            ]
+          : []),
+        ...pts.map((c, k) => ({
+          type: 'Feature' as const,
+          properties: { n: k + 1 },
+          geometry: { type: 'Point' as const, coordinates: c },
+        })),
+      ],
+    });
+  });
+
   export function getCenter(): LngLat | null {
     const c = map?.getCenter();
     return c ? [c.lng, c.lat] : null;

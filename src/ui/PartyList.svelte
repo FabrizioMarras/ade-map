@@ -154,7 +154,10 @@
 
 {#if favMode}
   <div class="actions transfer">
-    <button class="btn primary" disabled={!app.favs.size} onclick={shareList}>Share list</button>
+    <button class="btn primary" disabled={!app.starredNights.length} onclick={() => app.openNightPlan()}
+      >Plan my night</button
+    >
+    <button class="btn" disabled={!app.favs.size} onclick={shareList}>Share list</button>
     <button
       class="btn"
       disabled={!app.favs.size}

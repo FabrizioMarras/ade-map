@@ -204,19 +204,40 @@ test('search moves the map to the matching venues', async ({ page }) => {
   // A single artist: the map flies to their venue and zooms in.
   await page.getByRole('searchbox').fill('Charlotte');
   await expect(page.locator('.card .note').first()).toContainText('Charlotte');
-  await settled();
-  const one = await matches();
-  expect(one.map((v) => v.name)).toEqual(['Paradiso']);
   const vp = page.viewportSize()!;
-  expect(one[0].x).toBeGreaterThan(0);
-  expect(one[0].x).toBeLessThan(vp.width);
-  expect(one[0].y).toBeGreaterThan(100);
-  expect(one[0].y).toBeLessThan(await sheetTop());
-  expect(await page.evaluate(() => (window as unknown as W).__adeMap.getZoom())).toBeGreaterThanOrEqual(15);
+  // Polled: on a slow machine the fly-to may still be under way after the debounce.
+  await expect
+    .poll(
+      async () => {
+        const [p] = await matches();
+        const zoom = await page.evaluate(() => (window as unknown as W).__adeMap.getZoom());
+        return (
+          p.name === 'Paradiso' &&
+          p.x > 0 &&
+          p.x < vp.width &&
+          p.y > 100 &&
+          p.y < (await sheetTop()) &&
+          zoom >= 15
+        );
+      },
+      { timeout: 10_000 },
+    )
+    .toBe(true);
+  expect((await matches()).map((v) => v.name)).toEqual(['Paradiso']);
 
   // Several venues: all of them end up in the visible part of the map.
   await page.getByRole('searchbox').fill('techno');
   await settled();
+  await expect
+    .poll(
+      async () => {
+        const top = await sheetTop();
+        const all = await matches();
+        return all.length > 3 && all.every((v) => v.x >= 0 && v.x <= vp.width && v.y >= 0 && v.y <= top);
+      },
+      { timeout: 10_000 },
+    )
+    .toBe(true);
   const many = await matches();
   // Every match is highlighted, not only the selected venue.
   const hl = await page.evaluate(() => {
