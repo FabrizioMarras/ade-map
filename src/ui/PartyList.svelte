@@ -2,6 +2,7 @@
   import { activeFilterCount, applyQuery } from '../lib/filter';
   import { plural } from '../lib/format';
   import { clashes, exportFavs, importFavs } from '../lib/favs';
+  import { downloadIcs, eventsToIcs } from '../lib/ics';
   import { listLink } from '../lib/share';
   import { groupByDay, groupByHour, nextDay, type Group } from '../lib/group';
   import { matchingArtists, search, tokens } from '../lib/search';
@@ -71,6 +72,28 @@
     void app.share(url, 'Shared list');
     if (included < ids.length) {
       onmessage(`Link holds the first ${included} of ${ids.length} parties (link length limit)`);
+    }
+  }
+
+  function exportCalendar() {
+    const starred = [...app.favs].map((id) => app.data?.eventsById.get(id)).filter((e) => !!e);
+    if (!starred.length) return;
+    downloadIcs(eventsToIcs(starred));
+    onmessage(`Calendar with ${plural(starred.length, 'party', 'parties')} downloaded`);
+  }
+
+  const notificationsSupported = typeof Notification !== 'undefined';
+
+  async function toggleReminders(on: boolean) {
+    if (!on) return app.setReminders(false);
+    if (!notificationsSupported) return onmessage('Notifications are not supported in this browser');
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+      app.setReminders(true);
+      onmessage('Reminders on: 30 minutes before each starred party');
+    } else {
+      app.setReminders(false);
+      onmessage('Notifications are blocked for this site');
     }
   }
 
@@ -158,6 +181,7 @@
       >Plan my night</button
     >
     <button class="btn" disabled={!app.favs.size} onclick={shareList}>Share list</button>
+    <button class="btn" disabled={!app.favs.size} onclick={exportCalendar}>Calendar (.ics)</button>
     <button
       class="btn"
       disabled={!app.favs.size}
@@ -169,6 +193,22 @@
       aria-expanded={transfer === 'import'}
       onclick={() => (transfer = transfer === 'import' ? null : 'import')}>Import list</button
     >
+  </div>
+  <div class="reminders">
+    <label class="setting">
+      <input
+        type="checkbox"
+        checked={app.reminders}
+        disabled={!notificationsSupported}
+        onchange={(e) => toggleReminders(e.currentTarget.checked)}
+      />
+      Remind me 30 minutes before each starred party
+    </label>
+    <p class="fine">
+      Reminders show while the app is open or running in the background — most reliable on Android with the
+      app installed. On iPhone they need the app added to the Home Screen (iOS 16.4+), and closed apps may
+      miss them.
+    </p>
   </div>
   {#if transfer === 'export'}
     <div class="transfer-panel">
@@ -226,6 +266,14 @@
     text-transform: none;
     letter-spacing: 0;
     margin-left: 6px;
+  }
+  .reminders {
+    margin: 0 0 8px;
+  }
+  .fine {
+    margin: -4px 16px 0 46px;
+    font-size: 13px;
+    color: var(--muted);
   }
   .transfer-panel {
     margin: 0 16px 12px;

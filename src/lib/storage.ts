@@ -20,4 +20,7 @@ export const KEYS = {
   favs: 'ade2026.favs.v1',
   theme: 'ade2026.theme.v1',
   afterMidnight: 'ade2026.afterMidnight.v1',
+  /** Reminder notifications on/off, and the parties already reminded about. */
+  reminders: 'ade2026.reminders.v1',
+  reminded: 'ade2026.reminded.v1',
 };

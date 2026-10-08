@@ -13,6 +13,8 @@
   import MapControls from './ui/MapControls.svelte';
   import PlanBList from './ui/PlanBList.svelte';
   import NightPlan from './ui/NightPlan.svelte';
+  import { dueReminders, notify, reminderText } from './lib/reminders';
+  import { eventLink } from './lib/share';
   import ManualLink from './ui/ManualLink.svelte';
   import PulseDeck from './ui/PulseDeck.svelte';
   import { WALK_M_PER_MIN, circlePolygon } from './lib/planb';
@@ -239,6 +241,22 @@
     const key = app.sharedList && app.data && mapView ? app.sharedList.ids.join() : '';
     if (key && key !== lastShared) queueMicrotask(fitResults);
     lastShared = key;
+  });
+
+  // Reminders: every clock tick (30 s), notify for starred parties starting within 30 min.
+  $effect(() => {
+    const now = app.now;
+    if (!app.reminders || !app.data || typeof Notification === 'undefined') return;
+    if (Notification.permission !== 'granted') return;
+    const data = app.data;
+    const starred = [...app.favs].map((id) => data.eventsById.get(id)).filter((e) => !!e);
+    const due = dueReminders(starred, now, app.reminded);
+    if (!due.length) return;
+    app.markReminded(due.map((e) => e.id));
+    for (const e of due) {
+      const { title, body } = reminderText(e, now);
+      notify(title, body, eventLink(e.id), `ade2026-${e.id}`).catch(() => {});
+    }
   });
 
   // Messages from components (e.g. "Link copied") go to the toast.

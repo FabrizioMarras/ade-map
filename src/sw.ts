@@ -153,3 +153,20 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(staleWhileRevalidate(event, IMAGES, MAX_IMAGES));
   }
 });
+
+// Tapping a reminder opens (or focuses) the app on that party.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = (event.notification.data as { url?: string } | null)?.url ?? self.registration.scope;
+  event.waitUntil(
+    (async () => {
+      const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      const win = wins.find((w) => w.url.startsWith(self.registration.scope));
+      if (win) {
+        await win.focus();
+        return (win as WindowClient).navigate(url);
+      }
+      return self.clients.openWindow(url);
+    })(),
+  );
+});

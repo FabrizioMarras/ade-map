@@ -74,6 +74,20 @@ class AppState {
   area = $state.raw<LngLat[] | null>(null);
   drawMode = $state<'lasso' | 'box' | null>(null);
 
+  /** Reminder notifications 30 min before starred parties (opt-in). */
+  reminders = $state(readJSON<boolean>(KEYS.reminders, false));
+  reminded = $state.raw<Set<number>>(new Set(readJSON<number[]>(KEYS.reminded, [])));
+
+  setReminders(on: boolean) {
+    this.reminders = on;
+    writeJSON(KEYS.reminders, on);
+  }
+
+  markReminded(ids: number[]) {
+    this.reminded = new Set([...this.reminded, ...ids]);
+    writeJSON(KEYS.reminded, [...this.reminded]);
+  }
+
   favs = $state.raw<Set<number>>(new Set(readJSON<number[]>(KEYS.favs, [])));
 
   themePref = $state<ThemePref>(readJSON<ThemePref>(KEYS.theme, 'auto'));
