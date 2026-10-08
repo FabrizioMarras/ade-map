@@ -422,6 +422,9 @@
             contributors · Tiles:
             <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>
           </p>
+          <p>
+            <a href="./insights/">Insights</a> — the festival by hour, neighbourhood and genre, for organisers
+          </p>
           <p class="copyright">
             © {new Date().getFullYear()} FM Consulting ·
             <a href="https://fabriziomarras.com" target="_blank" rel="noopener">fabriziomarras.com</a>

@@ -48,7 +48,7 @@ export default defineConfig({
   build: {
     chunkSizeWarningLimit: 1500,
     rollupOptions: {
-      input: { index: 'index.html', sw: 'src/sw.ts' },
+      input: { index: 'index.html', insights: 'insights/index.html', sw: 'src/sw.ts' },
       output: {
         entryFileNames: (chunk) => (chunk.name === 'sw' ? 'sw.js' : 'assets/[name]-[hash].js'),
       },

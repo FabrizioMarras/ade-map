@@ -1,0 +1,397 @@
+/* Insights page. Chart colours: reference dataviz palette, validated on these surfaces. */
+:root {
+  color-scheme: light;
+  --font-display: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif;
+  --font-body: 'Source Sans 3', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --page: #f2f3f0;
+  --surface: #ffffff;
+  --ink: #111111;
+  --ink-2: #52514e;
+  --muted: #6b6a66;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.1);
+  --accent: #ffd400;
+  --s1: #2a78d6; /* blue */
+  --s2: #eb6834; /* orange */
+  --s3: #1baf7a; /* aqua */
+  --s4: #eda100; /* yellow */
+  --wash: rgba(42, 120, 214, 0.1);
+  /* Sequential blue, light → dark */
+  --q0: #f0f5fc;
+  --q1: #cde2fb;
+  --q2: #9ec5f4;
+  --q3: #6da7ec;
+  --q4: #3987e5;
+  --q5: #256abf;
+  --q6: #184f95;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --page: #000000;
+  --surface: #111214;
+  --ink: #f6f6f2;
+  --ink-2: #c3c2b7;
+  --muted: #9a9a93;
+  --grid: #2c2c2a;
+  --axis: #383835;
+  --border: rgba(255, 255, 255, 0.1);
+  --s1: #3987e5;
+  --s2: #d95926;
+  --s3: #199e70;
+  --s4: #c98500;
+  --wash: rgba(57, 135, 229, 0.14);
+  --q0: #16202d;
+  --q1: #104281;
+  --q2: #184f95;
+  --q3: #1c5cab;
+  --q4: #2a78d6;
+  --q5: #5598e7;
+  --q6: #86b6ef;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: 16px/1.45 var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+main {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: calc(env(safe-area-inset-top, 0px) + 20px) 16px calc(env(safe-area-inset-bottom, 0px) + 32px);
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--s1);
+  outline-offset: 2px;
+}
+
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.top a {
+  font-weight: 700;
+}
+
+h1 {
+  margin: 14px 0 4px;
+  font: 700 40px/1 var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+
+.lede {
+  margin: 0 0 20px;
+  color: var(--ink-2);
+  max-width: 62ch;
+}
+
+.card {
+  margin: 0 0 16px;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.card h2 {
+  margin: 0;
+  font: 700 22px/1.1 var(--font-display);
+  text-transform: uppercase;
+}
+
+.card .say {
+  margin: 6px 0 12px;
+  font-size: 17px;
+  max-width: 65ch;
+}
+
+.card .note {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* Charts */
+.chart {
+  position: relative;
+}
+
+.chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.chart svg text {
+  fill: var(--muted);
+  font: 12px var(--font-body);
+  font-variant-numeric: tabular-nums;
+}
+
+.grid line {
+  stroke: var(--grid);
+  stroke-width: 1;
+}
+
+.axis line {
+  stroke: var(--axis);
+  stroke-width: 1;
+}
+
+.line {
+  fill: none;
+  stroke: var(--s1);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.area {
+  fill: var(--wash);
+}
+
+.cross {
+  stroke: var(--ink-2);
+  stroke-width: 1;
+}
+
+.dot {
+  fill: var(--s1);
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+
+.tip {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.15);
+  font-size: 13px;
+  white-space: nowrap;
+  color: var(--ink-2);
+}
+
+.tip strong {
+  display: block;
+  color: var(--ink);
+  font-size: 15px;
+}
+
+/* Heatmaps (HTML tables, so they are their own table view) */
+.heat {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 2px;
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+}
+
+.heat th {
+  font-weight: 600;
+  color: var(--ink-2);
+  text-align: left;
+  padding: 4px 6px;
+  white-space: nowrap;
+}
+
+.heat thead th {
+  text-align: center;
+  font-size: 13px;
+}
+
+.heat td {
+  text-align: center;
+  padding: 6px 4px;
+  border-radius: 4px;
+  min-width: 40px;
+}
+
+.heat td:hover,
+.heat td:focus {
+  outline: 2px solid var(--ink);
+  outline-offset: -2px;
+}
+
+.scroll {
+  overflow-x: auto;
+}
+
+/* Stacked bars */
+.bars {
+  display: grid;
+  grid-template-columns: max-content 1fr max-content;
+  gap: 8px 10px;
+  align-items: center;
+}
+
+.bars .day {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+
+.bars .track {
+  display: flex;
+  gap: 2px;
+  height: 24px;
+}
+
+.bars .seg {
+  position: relative;
+  min-width: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.bars .seg:first-child {
+  border-radius: 0;
+}
+
+.bars .seg:last-child {
+  border-radius: 0 4px 4px 0;
+}
+
+.bars .total {
+  font-size: 13px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend i {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+/* Stat tiles */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.tile {
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.tile.lead {
+  border-color: var(--s1);
+}
+
+.tile .label {
+  font-size: 14px;
+  color: var(--ink-2);
+}
+
+.tile .value {
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.tile .sub {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+details {
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--ink-2);
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+}
+
+table.data {
+  border-collapse: collapse;
+  margin-top: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+table.data th,
+table.data td {
+  padding: 4px 10px 4px 0;
+  text-align: right;
+  border-bottom: 1px solid var(--grid);
+}
+
+table.data th:first-child,
+table.data td:first-child {
+  text-align: left;
+}
+
+footer {
+  margin-top: 24px;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+
+footer p {
+  margin: 0 0 6px;
+}
+
+.loading,
+.error {
+  padding: 40px 0;
+  color: var(--ink-2);
+}
+
+@media (max-width: 520px) {
+  h1 {
+    font-size: 32px;
+  }
+  .tile .value {
+    font-size: 32px;
+  }
+}

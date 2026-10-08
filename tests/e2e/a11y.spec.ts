@@ -33,3 +33,16 @@ for (const theme of ['light', 'dark'] as const) {
     expect(violations.map((v) => `filters: ${v.id} (${v.nodes.length}) ${v.nodes[0]?.target}`)).toEqual([]);
   });
 }
+
+for (const theme of ['light', 'dark'] as const) {
+  test(`insights page has no axe violations (${theme})`, async ({ page }) => {
+    await page.addInitScript((t) => localStorage.setItem('ade2026.theme.v1', JSON.stringify(t)), theme);
+    await page.goto('./insights/');
+    await expect(page.locator('section.card')).toHaveCount(6);
+    await page.getByText('Show table').first().click();
+    const { violations } = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+      .analyze();
+    expect(violations.map((v) => `${v.id} (${v.nodes.length}) ${v.nodes[0]?.target}`)).toEqual([]);
+  });
+}

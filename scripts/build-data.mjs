@@ -2,6 +2,7 @@
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { RAW, ROOT, args, readJSON, readManualFixes, summary, writeJSON } from './lib.mjs';
+import { writeInsights } from './build-insights.mjs';
 import { mergeDuplicateVenues, sharedSpots } from './merge-venues.mjs';
 import { splitData } from './split-data.mjs';
 
@@ -151,6 +152,7 @@ writeJSON(META, {
 });
 
 splitData();
+await writeInsights(); // public/data/insights.json for the /insights/ page
 
 // Validation report
 const perDay = Object.entries(byDay)
