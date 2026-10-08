@@ -58,6 +58,7 @@ test('bottom navigation: walk the four tabs on a phone', async ({ page }) => {
   await expect(tab('More')).toHaveAttribute('aria-current', 'page');
   const more = page.getByRole('dialog', { name: 'More' });
   await expect(more).toContainText('Programme as of');
+  await expect(more).toContainText(/[\d,]+ festival parties at \d+ venues/);
   await expect(more.getByRole('link', { name: /^Insights/ })).toHaveAttribute('href', './insights/');
   await expect(more.getByRole('link', { name: /^How to use the app/ })).toHaveAttribute('href', './help/');
   const theme = more.getByRole('button', { name: /^Theme/ });

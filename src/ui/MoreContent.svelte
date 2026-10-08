@@ -45,7 +45,10 @@
   <div class="row static">
     <span class="ic"><Icon name="info" /></span>
     <span class="lbl"
-      >About<small>Programme as of {asOf} · unofficial, not affiliated with Amsterdam Dance Event</small
+      >About<small
+        >{#if app.data}{app.data.events.length.toLocaleString('en-GB')} festival parties at {app.data.venues
+            .length} venues ·
+        {/if}Programme as of {asOf} · unofficial, not affiliated with Amsterdam Dance Event</small
       ></span
     >
   </div>
