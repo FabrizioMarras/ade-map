@@ -14,6 +14,8 @@ import { resolveTheme, type ThemePref } from './theme';
 export type { ThemePref };
 export type SheetSnap = 'collapsed' | 'half' | 'expanded';
 
+export type NavTab = 'map' | 'parties' | 'fav' | 'more';
+
 export interface Toast {
   id: number;
   text: string;
@@ -52,8 +54,14 @@ class AppState {
   /** Venue ids under an ambiguous tap; shown as a chooser. */
   chooser = $state<string[] | null>(null);
   sheet = $state<SheetSnap>('collapsed');
-  /** The More sheet (bottom navigation) is open. */
-  moreOpen = $state(false);
+  /**
+   * The active navigation tab: set by the tabs themselves and reset by what the user does
+   * (opening something on the map, collapsing the sheet, searching…). Wide screens have no Map
+   * tab: there the panel always shows Parties, My list or More.
+   */
+  tab = $state<NavTab>('map');
+  /** The More content is showing (a sheet on phones, the side panel on wide screens). */
+  moreOpen = $derived(this.tab === 'more');
   /** The last day (or All) shown in the Parties list, for the Parties tab after My list. */
   listDay = $state<DayScope>(defaultDay());
   /** Chrome's install prompt, when the browser offers one (beforeinstallprompt). */
@@ -164,6 +172,7 @@ class AppState {
   });
 
   openArtist(key: string) {
+    this.tab = 'parties'; // opened from a search
     this.chooser = null;
     this.selectedEventId = null;
     this.selectedVenueId = null;
@@ -300,12 +309,18 @@ class AppState {
     this.applyHash(location.hash);
     if (this.selectedEventId) this.sheet = 'expanded';
     else if (this.selectedVenueId || this.sharedList) this.sheet = 'half';
+    // My list via a deep link opens on the My list tab, with the list showing.
+    else if (this.day === 'fav') this.sheet = 'half';
+    this.tab = this.day === 'fav' && !this.sharedList ? 'fav' : this.sharedList ? 'parties' : this.homeTab;
     window.addEventListener('popstate', () => this.applyHash(location.hash));
     // Keep favourites in sync across tabs.
     window.addEventListener('storage', (e) => {
       if (e.key === KEYS.favs) this.favs = new Set(readJSON<number[]>(KEYS.favs, []));
     });
-    matchMedia('(min-width: 900px)').addEventListener('change', (e) => (this.wide = e.matches));
+    matchMedia('(min-width: 900px)').addEventListener('change', (e) => {
+      this.wide = e.matches;
+      if (this.wide && this.tab === 'map') this.tab = 'parties';
+    });
     setInterval(() => (this.now = nowWall()), 30_000);
   }
 
@@ -324,6 +339,7 @@ class AppState {
     this.selectedEventId = h.event ?? null;
     this.chooser = null;
     this.resolveLinkDay();
+    if (this.day === 'fav' && !this.sharedList) this.tab = 'fav';
   }
 
   /** Set when the URL named a party/venue but no day: pick the day from the item. */
@@ -381,6 +397,8 @@ class AppState {
 
   setDay(day: DayScope) {
     if (day !== 'fav') this.listDay = day;
+    // A day chip while My list is showing switches to that day's list.
+    if (day !== 'fav' && this.tab === 'fav') this.tab = 'parties';
     this.nightPlan = null;
     this.day = day;
     this.sharedList = null;
@@ -395,6 +413,7 @@ class AppState {
     const { ids, added } = mergeIntoList(this.favs, this.sharedList.ids, (id) => data.eventsById.has(id));
     this.setFavs(ids);
     this.setDay('fav');
+    this.tab = 'fav';
     return added;
   }
 
@@ -406,6 +425,7 @@ class AppState {
 
   /** A tap on the map hit one or more venues. */
   pick(ids: string[]) {
+    this.tab = this.homeTab;
     if (ids.length > 1) {
       this.chooser = ids;
       if (this.sheet === 'collapsed') this.sheet = 'half';
@@ -451,6 +471,7 @@ class AppState {
   /** Enter Pulse mode (adds a history entry, so Back returns to the normal map). */
   /** Start Plan B from `origin` (the user's location, or the map centre as a fallback). */
   startPlanB(origin: LngLat, source: 'location' | 'centre') {
+    this.tab = this.homeTab;
     this.chooser = null;
     this.selectedEventId = null;
     this.selectedVenueId = null;
@@ -472,6 +493,7 @@ class AppState {
 
   enterPulse(t = defaultT(this.now)) {
     if (this.pulseOn) return;
+    this.tab = this.homeTab;
     this.planB = null;
     this.chooser = null;
     this.selectedEventId = null;
@@ -531,6 +553,7 @@ class AppState {
       this.selectedEventId = null;
       this.listMode = 'parties';
       this.writeHash(false);
+      this.tab = 'parties';
       if (!this.wide && this.sheet === 'collapsed') this.sheet = 'half';
     }
   }
@@ -543,30 +566,33 @@ class AppState {
     this.filters = emptyFilters();
   }
 
-  /**
-   * The bottom-navigation tab that reflects what is on screen: More while its sheet is open,
-   * My list when favourites are shown, Parties when a list is open, otherwise Map.
-   */
-  get tab(): 'map' | 'parties' | 'fav' | 'more' {
-    if (this.moreOpen) return 'more';
-    const favs = this.day === 'fav' && !this.nowMode && !this.sharedList;
-    const listOpen = this.wide || this.sheet !== 'collapsed';
-    if (favs && listOpen) return 'fav';
-    if (this.selectedEventId || this.selectedVenueId || this.chooser) return 'map';
-    return listOpen ? 'parties' : 'map';
+  /** The tab to fall back to: Map on phones; wide screens have no Map tab. */
+  get homeTab(): NavTab {
+    return this.wide ? 'parties' : 'map';
   }
 
-  /** Map tab: show the map; again while active, also clear the selection. */
+  /** Map tab (phones): collapse the sheet and clear the selection. */
   showMap() {
-    const again = this.tab === 'map';
-    this.moreOpen = false;
-    if (again || this.wide) this.close();
+    this.tab = this.homeTab;
+    this.close();
     if (!this.wide) this.sheet = 'collapsed';
+  }
+
+  /** More tab: open its content, or close it again. */
+  toggleMore() {
+    if (this.tab === 'more') this.closeMore();
+    else this.tab = 'more';
+  }
+
+  closeMore() {
+    if (this.tab === 'more') this.tab = this.homeTab;
   }
 
   /** Parties tab: the current day's list at half height. */
   showParties() {
-    this.moreOpen = false;
+    // Again while active (phones): put the list away.
+    if (this.tab === 'parties' && !this.wide) return this.collapseList();
+    this.tab = 'parties';
     this.close();
     this.closePlanB();
     this.nightPlan = null;
@@ -581,14 +607,20 @@ class AppState {
   showMyList() {
     // Remember the day on screen (it may have come from a link) for the Parties tab.
     if (this.day !== 'fav') this.listDay = this.day;
-    this.moreOpen = false;
+    if (this.tab === 'fav' && !this.wide) return this.collapseList();
     this.close();
     this.closePlanB();
     this.artistKey = null;
     this.nowMode = false;
     this.setDay('fav');
+    this.tab = 'fav';
     this.listMode = 'parties';
     if (!this.wide) this.sheet = 'half';
+  }
+
+  private collapseList() {
+    this.sheet = 'collapsed';
+    this.tab = 'map';
   }
 
   setTheme(pref: ThemePref) {

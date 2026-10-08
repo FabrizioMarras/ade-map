@@ -11,12 +11,14 @@
 
   let { variant, height = $bindable(0) }: Props = $props();
 
-  const tabs = [
+  const all = [
     { key: 'map', label: 'Map', icon: 'map', run: () => app.showMap() },
     { key: 'parties', label: 'Parties', icon: 'list', run: () => app.showParties() },
     { key: 'fav', label: 'My list', icon: 'star', run: () => app.showMyList() },
-    { key: 'more', label: 'More', icon: 'more', run: () => (app.moreOpen = !app.moreOpen) },
+    { key: 'more', label: 'More', icon: 'more', run: () => app.toggleMore() },
   ] as const;
+  // The side panel on wide screens is always open: no Map tab there.
+  const tabs = $derived(variant === 'row' ? all.filter((t) => t.key !== 'map') : all);
 </script>
 
 <nav class="tabs {variant}" aria-label="Main" bind:clientHeight={height}>
@@ -25,7 +27,7 @@
       class="tab"
       data-tab={t.key}
       aria-current={app.tab === t.key ? 'page' : undefined}
-      aria-expanded={t.key === 'more' ? app.moreOpen : undefined}
+      aria-expanded={t.key === 'more' && variant === 'bar' ? app.moreOpen : undefined}
       aria-label={t.key === 'fav' && app.favs.size ? `My list (${app.favs.size})` : undefined}
       onclick={t.run}
     >
@@ -42,7 +44,7 @@
 <style>
   .tabs {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
     background: var(--surface);
   }
   .bar {

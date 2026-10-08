@@ -28,6 +28,7 @@
   import TopBar from './ui/TopBar.svelte';
   import NavTabs from './ui/NavTabs.svelte';
   import MoreSheet from './ui/MoreSheet.svelte';
+  import MoreContent from './ui/MoreContent.svelte';
   import Icon from './ui/Icon.svelte';
   import Sheet from './ui/Sheet.svelte';
   import VenueChooser from './ui/VenueChooser.svelte';
@@ -134,6 +135,22 @@
   $effect(() => {
     if (narrowed && !wasNarrowed && !app.wide && app.sheet === 'collapsed') app.sheet = 'half';
     wasNarrowed = narrowed;
+  });
+
+  // A search shows its results in the list: the Parties tab (My list keeps its own tab).
+  let lastQuery = '';
+  $effect(() => {
+    const q = app.query.trim();
+    if (q && !lastQuery && app.tab !== 'fav') app.tab = 'parties';
+    lastQuery = q;
+  });
+
+  // Collapsing the sheet (dragging it down, or Map) leaves the map showing: the Map tab.
+  let lastSnap = app.sheet;
+  $effect(() => {
+    const snap = app.sheet;
+    if (snap === 'collapsed' && lastSnap !== 'collapsed' && !app.wide && app.tab !== 'more') app.tab = 'map';
+    lastSnap = snap;
   });
 
   // Frame a freshly drawn area in the visible part of the map.
@@ -302,7 +319,7 @@
 
   function onkeydown(e: KeyboardEvent) {
     if (e.key !== 'Escape') return;
-    if (app.moreOpen) app.moreOpen = false;
+    if (app.moreOpen) app.closeMore();
     else if (app.drawMode) app.drawMode = null;
     else if (app.selectedEventId || app.selectedVenueId || app.chooser) app.back();
     else if (app.artist) app.closeArtist();
@@ -358,7 +375,9 @@
       {/snippet}
       {#snippet header()}
         <div class="sheet-head">
-          {#if app.chooser}
+          {#if app.wide && app.moreOpen}
+            <h2 tabindex="-1">More</h2>
+          {:else if app.chooser}
             <button class="icon-btn" aria-label="Back" onclick={() => app.back()}><Icon name="back" /></button
             >
             <h2 tabindex="-1">Pick a venue<span class="sub">{app.chooser.length} venues here</span></h2>
@@ -433,7 +452,9 @@
         </div>
       {/snippet}
 
-      {#if app.error}
+      {#if app.wide && app.moreOpen}
+        <div class="panel-more"><MoreContent {asOf} /></div>
+      {:else if app.error}
         <div class="empty" role="alert">
           <p><strong>The programme couldn't be loaded.</strong></p>
           <p>{navigator.onLine ? app.error : 'You appear to be offline.'}</p>
@@ -492,12 +513,15 @@
   {#if tabBar}
     <NavTabs variant="bar" bind:height={tabBarHeight} />
   {/if}
-  {#if app.moreOpen && !app.pulseOn}
+  {#if app.moreOpen && !app.wide && !app.pulseOn}
     <MoreSheet bottom={tabInset} {asOf} />
   {/if}
 </div>
 
 <style>
+  .panel-more {
+    padding: 4px 12px 12px;
+  }
   .shared-banner {
     margin: 12px 16px 4px;
     font-size: 15px;

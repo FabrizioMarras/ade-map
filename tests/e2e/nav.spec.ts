@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Locator } from '@playwright/test';
 import { ready } from './helpers';
 
 test('bottom navigation: walk the four tabs on a phone', async ({ page }) => {
@@ -84,19 +84,91 @@ test('bottom navigation: walk the four tabs on a phone', async ({ page }) => {
   await expect(page).not.toHaveURL(/e=2892764/);
 });
 
-test('Pulse hides the tab bar; wide screens show the tabs at the top of the side panel', async ({ page }) => {
+test('Pulse hides the tab bar', async ({ page }) => {
   await page.goto('./#d=23&p=1320');
   await expect(page.getByRole('slider', { name: 'Festival time' })).toBeVisible();
   await expect(page.getByRole('navigation', { name: 'Main' })).toHaveCount(0);
+});
 
-  await page.setViewportSize({ width: 1200, height: 800 });
-  await page.goto('./#d=23');
-  await ready(page);
-  const nav = page.getByRole('navigation', { name: 'Main' });
-  await expect(nav).toBeVisible();
-  const side = (await page.locator('.sheet').boundingBox())!;
-  const box = (await nav.boundingBox())!;
-  expect(box.x).toBeGreaterThanOrEqual(side.x);
-  expect(box.x + box.width).toBeLessThanOrEqual(side.x + side.width + 1);
-  expect(box.y).toBeLessThan(200);
+/** Exactly one item is highlighted, and it is `name`. */
+async function expectActive(nav: Locator, name: string | RegExp) {
+  await expect(nav.locator('[aria-current="page"]')).toHaveCount(1);
+  await expect(nav.getByRole('button', { name })).toHaveAttribute('aria-current', 'page');
+}
+
+test.describe('wide screen (1280×800)', () => {
+  test.use({ viewport: { width: 1280, height: 800 }, isMobile: false, hasTouch: false });
+
+  test('three items at the top of the side panel: Parties by default, My list, More', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('ade2026.favs.v1', '[2892764,2863536]'));
+    await page.goto('./#d=23');
+    await ready(page);
+    const nav = page.getByRole('navigation', { name: 'Main' });
+    await expect(nav.getByRole('button')).toHaveText([/Parties/, /My list/, /More/]);
+    const side = (await page.locator('.sheet').boundingBox())!;
+    const box = (await nav.boundingBox())!;
+    expect(box.x).toBeGreaterThanOrEqual(side.x);
+    expect(box.x + box.width).toBeLessThanOrEqual(side.x + side.width + 1);
+    expect(box.y).toBeLessThan(200);
+    await expectActive(nav, 'Parties');
+    await expect(page.locator('.sheet-head h2')).toHaveText(/Fri 23 · 335 parties/);
+
+    await nav.getByRole('button', { name: /My list/ }).click();
+    await expectActive(nav, /My list/);
+    await expect(page.locator('.sheet-head h2')).toContainText('My list');
+    await expect(page.locator('.card')).toHaveCount(2);
+
+    // More: its content inside the panel, not a sheet over the map.
+    await nav.getByRole('button', { name: 'More', exact: true }).click();
+    await expectActive(nav, 'More');
+    await expect(page.locator('.sheet-head h2')).toHaveText('More');
+    await expect(page.locator('.sheet').getByRole('link', { name: /^Insights/ })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'More' })).toHaveCount(0);
+
+    // A venue tapped on the map shows in the panel under Parties.
+    await nav.getByRole('button', { name: 'Parties' }).click();
+    await expectActive(nav, 'Parties');
+    await expect(page.locator('.sheet-head h2')).toHaveText(/Fri 23 · 335 parties/);
+  });
+});
+
+test.describe('phone (390×844)', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test('four tabs; Map after opening a party collapses the sheet and highlights Map', async ({ page }) => {
+    await page.goto('./#d=23');
+    await ready(page);
+    const nav = page.getByRole('navigation', { name: 'Main' });
+    await expect(nav.getByRole('button')).toHaveText([/Map/, /Parties/, /My list/, /More/]);
+    await expectActive(nav, 'Map');
+
+    await nav.getByRole('button', { name: 'Parties' }).click();
+    await expectActive(nav, 'Parties');
+    await page.locator('.card .main').first().click();
+    await expect(page.locator('.detail')).toBeVisible();
+    await expectActive(nav, 'Parties'); // opened from the list, not the map
+
+    await nav.getByRole('button', { name: 'Map' }).click();
+    await expect(page.locator('.detail')).toHaveCount(0);
+    await expectActive(nav, 'Map');
+    await expect
+      .poll(async () => (await page.locator('.sheet .body').boundingBox())?.height ?? 0)
+      .toBeLessThan(60); // collapsed: only the peek
+
+    // The active tab again: Parties collapses the list, More closes.
+    await nav.getByRole('button', { name: 'Parties' }).click();
+    await expectActive(nav, 'Parties');
+    await nav.getByRole('button', { name: 'Parties' }).click();
+    await expectActive(nav, 'Map');
+    await nav.getByRole('button', { name: 'More', exact: true }).click();
+    await expectActive(nav, 'More');
+    await nav.getByRole('button', { name: 'More', exact: true }).click();
+    await expect(page.getByRole('dialog', { name: 'More' })).toHaveCount(0);
+    await expectActive(nav, 'Map');
+
+    // A deep link to My list opens on the My list tab.
+    await page.goto('./#d=fav');
+    await page.reload();
+    await expectActive(nav, /My list/);
+  });
 });
