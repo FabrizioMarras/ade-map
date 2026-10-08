@@ -321,3 +321,18 @@ test('lasso and box work with a finger (touch), and the map pans again afterward
   await page.waitForTimeout(800);
   expect(await center()).not.toEqual(before);
 });
+
+test('day chips: My list first, All last, selected day scrolled into view', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-10-25T12:00:00Z')); // Sun 25 → opens on Sun 25
+  await page.goto('./');
+  await ready(page);
+  const labels = await page
+    .getByRole('group', { name: 'Day' })
+    .getByRole('button')
+    .evaluateAll((els) => els.map((e) => e.getAttribute('aria-label') ?? e.textContent!.trim()));
+  expect(labels).toEqual(['My list (0)', 'Wed 21', 'Thu 22', 'Fri 23', 'Sat 24', 'Sun 25', 'All']);
+
+  const sun = page.getByRole('button', { name: 'Sun 25' });
+  await expect(sun).toHaveAttribute('aria-pressed', 'true');
+  await expect(sun).toBeInViewport({ ratio: 1 });
+});

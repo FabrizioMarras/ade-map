@@ -3,29 +3,50 @@
   import { app } from '../lib/store.svelte';
   import { DAYS } from '../lib/time';
 
-  const chips = $derived<{ key: DayScope; label: string; count: number }[]>([
-    ...DAYS.map((d) => ({
-      key: d.key,
-      label: d.short,
-      count: app.data?.eventsByDay.get(d.key)?.length ?? 0,
-    })),
-    { key: 'all', label: 'All', count: app.data?.events.length ?? 0 },
-    { key: 'fav', label: 'My list', count: app.favs.size },
+  // My list first (compact "★ 3"), then the days, then All.
+  const chips = $derived<{ key: DayScope; label: string }[]>([
+    { key: 'fav', label: 'My list' },
+    ...DAYS.map((d) => ({ key: d.key, label: d.short })),
+    { key: 'all', label: 'All' },
   ]);
+
+  let row: HTMLDivElement | undefined = $state();
+
+  // Keep the selected chip in view (e.g. Sun 25 on a phone during the festival).
+  $effect(() => {
+    void app.day;
+    void app.nowMode;
+    const el = row?.querySelector<HTMLElement>('[aria-pressed="true"]');
+    if (!row || !el) return;
+    const left = el.offsetLeft - row.offsetLeft;
+    const right = left + el.offsetWidth;
+    if (left < row.scrollLeft || right > row.scrollLeft + row.clientWidth) {
+      const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      row.scrollTo({ left: Math.max(0, left - 24), behavior: reduced ? 'auto' : 'smooth' });
+    }
+  });
 </script>
 
-<div class="days" role="group" aria-label="Day">
+<div class="days" role="group" aria-label="Day" bind:this={row}>
   {#each chips as c (c.key)}
     <button
       class="chip"
+      class:fav={c.key === 'fav'}
       aria-pressed={!app.nowMode && app.day === c.key}
+      aria-label={c.key === 'fav' ? `My list (${app.favs.size})` : undefined}
+      title={c.key === 'fav' ? 'My list' : undefined}
       onclick={() => {
         app.nowMode = false;
         app.setDay(c.key);
       }}
     >
-      {#if c.key === 'fav'}<span class="star" aria-hidden="true">★</span>{/if}{c.label}
-      {#if c.key === 'fav' && c.count}<span class="n tnum">{c.count}</span>{/if}
+      {#if c.key === 'fav'}
+        <span aria-hidden="true"
+          >★{#if app.favs.size}<span class="n tnum">{app.favs.size}</span>{/if}</span
+        >
+      {:else}
+        {c.label}
+      {/if}
     </button>
   {/each}
 </div>
@@ -55,13 +76,13 @@
     letter-spacing: 0.02em;
     box-shadow: 0 1px 4px rgb(0 0 0 / 0.12);
   }
-  .star {
-    margin-right: 4px;
+  .chip.fav {
+    min-width: 44px;
+    padding: 0 10px;
   }
   .n {
-    margin-left: 6px;
-    font-size: 14px;
-    opacity: 0.8;
+    margin-left: 5px;
+    font-size: 15px;
   }
   .chip[aria-pressed='true'] {
     background: var(--accent);
