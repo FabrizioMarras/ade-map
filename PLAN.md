@@ -247,9 +247,33 @@ Each task should be a commit. Keep the app runnable after every task.
 
 **T10 — Polish and QA.** Accessibility pass, reduced motion, empty states ("No parties match — clear filters"), error state when data fails to load, Lighthouse PWA ≥ 90, test on a real phone outdoors in daylight (contrast). ✔ Playwright smoke suite green on mobile viewport.
 
-Nice‑to‑have after T10: route between two favourites with walking time; "near me" radius mode; share a party as a link; push the favourites list into the phone calendar via one combined `.ics`.
+Done after T10 (not in the original list): **scheduled data refresh** (`refresh-data.yml`, every 2 hours, commit 5b5d301), search-to-map highlighting, phone lasso fix, FM Consulting badge, and **T11 — Pulse mode** (opt-in time-lapse with timeline, heartbeat histogram and sparkline; commit 3f5cf79, reference prototype in `prototypes/city-pulse-prototype.html`).
 
 ---
+
+## 5b. Phase 2 — before ADE (21 Oct 2026)
+
+Scope decision: only the tasks below are planned. Ideas such as live TicketSwap availability, crowd check-ins, accounts, the ADE Pro conference, Dutch translation and a visual redesign are deliberately out of scope and must not be started. Same rules as before: one commit per task, app runnable after each, push after each so it can be tested on the phone, keep lint/check/tests/e2e green.
+
+Priority order: T12 → T13 → T14 → T15 are must-haves; T16 → T20 are should-haves, in that order.
+
+**T12 — TicketSwap (no scraping).** TicketSwap (ticketswap.com) is the fan-to-fan resale platform used for ADE tickets; it has no public API and scraping it is not allowed, so this task only deep-links to it. (1) `lib/ticketswap.ts`: build a TicketSwap search URL from a party title (strip subtitle, venue and bracketed suffixes; collapse whitespace); first verify the live search URL format on ticketswap.com and encode accordingly; honour an optional `ticketswapUrl` field on the event when present. (2) Party detail: when `soldOut` is true, replace the disabled "Sold out" button with a primary "Check TicketSwap" button that opens the URL in a new tab, with the note "Resale via TicketSwap · prices capped"; when not sold out, add a secondary "Resale on TicketSwap" link under the ticket button. (3) Filter sheet: replace the sold-out checkbox with three options — Show all / Hide sold out / Sold out, check TicketSwap. The third keeps sold-out parties visible with a distinct "Sold out · TicketSwap" badge on cards and pins instead of the muted style. (4) Add `ticketswapUrl` (optional string) to the data schema, `build-data.mjs` and `manual-fixes.json` so a specific event URL can override the search URL. ✔ Unit tests for the URL builder (titles with punctuation, accents, emoji, very long titles) and for the three filter states; e2e: open a sold-out party, assert the TicketSwap button href.
+
+**T13 — Plan B.** One button in the map control stack labelled "Plan B". It requests location (or uses the map centre if denied) and lists parties that (a) are live now or start within 60 minutes, (b) are within a 15-minute walk (1,200 m straight-line, speed 80 m/min), (c) are not sold out, or are sold out with the TicketSwap option (badge as in T12). Sort by walking minutes, then start time. Free parties get a "Free" chip and float to the top within the same walking band. Empty state: "Nothing within 15 minutes right now — widen to 30 min" with a button that doubles the radius. Pins outside the result set fade; a soft circle shows the radius on the map. Outside the festival dates the button shows a "Plan B works during ADE, 21–25 Oct" note and previews the result for Fri 23 23:30 so it can be demoed. ✔ Unit tests for the distance/time filter with fixed coordinates and times; e2e with a mocked geolocation at Rembrandtplein on Fri 23:30 showing results.
+
+**T14 — Shareable plans and deep links.** (1) Every party and venue has a stable link (`#e=<id>`, `#v=<id>`) that opens the app on that item with the right day selected; a "Copy link" button in both sheets (clipboard with fallback to a selectable text field). (2) "My list" can be shared: `#list=<base64url of event ids>` opens the app with a banner "Fabrizio's list · 9 parties — Save to my list / Just look"; saving merges without duplicates. The URL must stay under 2,000 characters (ids as base36, comma-separated, then base64url). (3) Web Share API when available (`navigator.share`), copy-link otherwise. ✔ Unit tests for encode/decode round-trip and for the merge; e2e: open a `#list=` URL and assert the banner and count.
+
+**T15 — Data quality.** (1) Merge duplicate venue records in `build-data.mjs` by normalised name + coordinates within 50 m (e.g. the two "Oceandiva Original" records), keeping one id and remapping events. (2) Venues sharing one address (Rembrandtplein 17, Overhoeksplein 1, Mauritskade 57, Kleine-Gartmanplantsoen 7) render as one pin with a count badge; tapping opens the venue chooser already built in T3. (3) Overnight parties show "23:00 → 07:00 Sun" in cards and detail; the "After midnight" grouping stays as is. (4) Validation report in the pipeline lists merged venues and shared-address clusters. ✔ Unit tests for the merge rule and the time formatting; venue count after merge documented in the meta file.
+
+**T16 — Insights page for organisers.** A static page at `/insights/` generated by the pipeline (`scripts/build-insights.mjs` writes JSON; the page renders it with small inline SVG charts, no chart library). Charts, each with one plain sentence under it written from the numbers: parties live per hour across the five days; parties by neighbourhood at 23:00 on each day; genre mix per neighbourhood (top 6 genres); free vs paid by day; venue size mix (Intimate / Mid-size / Large / Warehouse) by day; number of parties starting in the same 30-minute window within 1 km of Rembrandtplein vs. Noord and Zuidoost. Footer: data source, generation date, link to the app, contact. Linked from the app's About/footer as "Insights". ✔ Page passes the same lint/check; numbers in the sentences come from the JSON, never hard-coded.
+
+**T17 — Night planner.** In "My list", a "Plan my night" button orders the starred parties for the selected day into a route: sort by start time, compute leg distance (straight-line × 1.25) and walking/bike minutes (80 m/min, 250 m/min), flag clashes (overlap > 30 min) and infeasible legs (arrival after the party ends). Legs that cross the IJ get a ferry note (F3 Buiksloterweg from Centraal 24 h, F4 NDSM every 15–30 min; cite the GVB page) and a "night bus" hint after 00:30. Show the route as a line on the map with numbered stops. No external routing API. ✔ Unit tests for ordering, leg times, clash and ferry detection with fixed coordinates.
+
+**T18 — Calendar export and reminders.** (1) "Export my list (.ics)" generates one calendar file client-side with all starred parties (title, venue + address as location, ADE URL in the description, Europe/Amsterdam times). (2) Optional reminders: a toggle in My list asks for notification permission and schedules a local notification 30 minutes before each starred party while the app is open or installed (use the Notification API with a service-worker `showNotification`; document the Android-only reliability in the UI copy). ✔ Unit test that the generated .ics parses (DTSTART/DTEND/TZID/UID per event); manual test on Android.
+
+**T19 — Artist view.** Searching an artist (line-up match) opens an artist sheet listing all their sets across the five days with day, time, venue, and a link to each party; pins for those venues highlight. Build an artist index at load (name → event ids), de-duplicating country suffixes like "(NL)". ✔ Unit test for the index with sample data; e2e: search an artist with 2+ sets and assert the list.
+
+**T20 — Pre-festival QA.** Re-run the full pipeline, test every Must task on a real Android phone (install, offline, Plan B with real location, TicketSwap links), fix what breaks, update the About page with the current numbers and the data date, and tag the release `v1.0-ade2026`. ✔ All tests green; tag pushed.
 
 ## 6. Design direction
 
@@ -259,8 +283,8 @@ Utility first: the app is used standing on a street at night. Dark theme optimis
 
 ## 7. Open questions for Fabrizio
 
-1. Hosting preference (GitHub Pages is simplest; Netlify if you want a custom domain)?
-2. Should the conference (ADE Pro, type 8264) be included as a toggle later?
+1. Hosting: decided — GitHub Pages at https://fabriziomarras.github.io/ade-map/ (relative base, Actions deploy).
+2. ADE Pro conference: decided — out of scope.
 3. Is a map style with street names worth a free MapTiler key as a backup, or is OpenFreeMap enough?
 
 ---
