@@ -28,7 +28,11 @@ manual run always rebuilds. A rebuild:
 2. refuses to publish if the event count drops by more than 20 % (site change or failed fetch);
    the previous programme stays live and the run fails;
 3. force-pushes the result to the `data` branch (one commit holding the current programme) and
-   redeploys through the CI workflow.
+   redeploys through the CI workflow in data-only mode: no lint, type check or tests (the code on
+   `main` already passed them), just a sanity check of the data (`scripts/check-data.mjs`: the
+   files parse, there are events, every event has a venue with coordinates), the build and the
+   Pages deploy. If that deploy fails the run fails, and the next run redeploys: it compares the
+   live site's `meta.json` with the `data` branch. Pushes to `main` still run the full pipeline.
 
 The run summary lists added/removed events, new sell-outs and venues that couldn't be placed on
 the map (add those to `scripts/manual-fixes.json`). Trigger a run by hand from the Actions tab

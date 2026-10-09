@@ -5,6 +5,9 @@ name: Refresh programme
 # apart), so the schedule fires often and each run checks how old the published programme is
 # (scripts/refresh-due.mjs): refreshed when older than 20 h before ADE week, older than 2 h
 # from 19 to 26 Oct, never from 27 Oct. Manual runs (Actions tab) always refresh.
+#
+# The redeploy is data-only (ci.yml with data_only: no test suite). If it fails, this run fails,
+# and the next run redeploys: it compares the live site's programme with the data branch.
 on:
   schedule:
     - cron: '7,37 * * * *' # off the top of the hour, where GitHub's scheduler is busiest
@@ -26,19 +29,41 @@ jobs:
   refresh:
     runs-on: ubuntu-latest
     outputs:
-      published: ${{ steps.publish.outputs.published }}
+      # Deploy when this run published a programme, or the live site isn't showing the
+      # published one (a failed or skipped deploy earlier).
+      deploy: ${{ steps.publish.outputs.published == 'true' || steps.live.outputs.behind == 'true' }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Start from the last published programme
+        id: data
         run: |
           if git fetch --depth=1 origin data 2>/dev/null; then
             git checkout FETCH_HEAD -- public/data
+            echo "generated=$(node -p "require('./public/data/ade-2026.meta.json').generated")" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Decide whether this run is due
         id: gate
         run: node scripts/refresh-due.mjs public/data/ade-2026.meta.json ${{ github.event_name == 'workflow_dispatch' && '--manual' || '' }}
+
+      - name: Check the live site shows the published programme
+        id: live
+        if: steps.gate.outputs.due != 'true' && steps.data.outputs.generated != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PUBLISHED: ${{ steps.data.outputs.generated }}
+        run: |
+          site=$(gh api "repos/${{ github.repository }}/pages" -q .html_url) ||
+            site="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+          # The query string gets past the CDN cache.
+          body=$(curl -fsS "${site%/}/data/ade-2026.meta.json?t=$(date +%s)") || body='{}'
+          live=$(echo "$body" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{console.log(JSON.parse(s).generated??'')}catch{console.log('')}})")
+          echo "Live site: ${live:-(unreadable)} · data branch: $PUBLISHED"
+          if [ "$live" != "$PUBLISHED" ]; then
+            echo "::warning::The live site is behind the data branch: redeploying"
+            echo "behind=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - if: steps.gate.outputs.due == 'true'
         uses: actions/setup-node@v4
@@ -84,8 +109,10 @@ jobs:
 
   deploy:
     needs: refresh
-    if: needs.refresh.outputs.published == 'true'
+    if: needs.refresh.outputs.deploy == 'true'
     uses: ./.github/workflows/ci.yml
+    with:
+      data_only: true
     permissions:
       contents: read
       pages: write

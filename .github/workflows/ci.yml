@@ -4,8 +4,13 @@ on:
   push:
     branches: [main]
   pull_request:
-  # Called by the scheduled programme refresh to test and redeploy with the new data.
+  # Called by the programme refresh to redeploy with the new data.
   workflow_call:
+    inputs:
+      data_only:
+        description: 'Skip lint, type check and tests: only check the data, build and deploy'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -14,32 +19,39 @@ permissions:
 
 jobs:
   test:
+    # Data-only deploys (from the refresh) don't run the suite: the code on main already passed
+    # it, and tests pinned to the snapshot must never hold back a new programme.
+    name: ${{ inputs.data_only && 'build (data only)' || 'test' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci
-      - run: npm run lint
-      - run: npm run check
+      - if: ${{ !inputs.data_only }}
+        run: npm run lint
+      - if: ${{ !inputs.data_only }}
+        run: npm run check
       # Tests run against the programme snapshot committed on main, so a changed live
       # programme can never break them.
-      - run: npm test
-      - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e
+      - if: ${{ !inputs.data_only }}
+        run: npm test
+      - if: ${{ !inputs.data_only }}
+        run: npx playwright install --with-deps chromium
+      - if: ${{ !inputs.data_only }}
+        run: npm run test:e2e
 
       - name: Use the latest published programme
         run: |
           if git fetch --depth=1 origin data 2>/dev/null; then
             git checkout FETCH_HEAD -- public/data
-            node -e "
-              const m = require('./public/data/ade-2026.meta.json');
-              if (!(m.events > 0)) throw new Error('data branch looks empty');
-              console.log('Programme from the data branch:', m.events, 'events, generated', m.generated);
-            "
+          elif [ "${{ inputs.data_only }}" = "true" ]; then
+            echo '::error::No data branch to deploy'; exit 1
           else
             echo 'No data branch yet: deploying the snapshot from main.'
           fi
+      - name: Check the programme
+        run: node scripts/check-data.mjs public/data
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with: { path: dist }
