@@ -32,13 +32,19 @@ describe('pageMaxAgeHours', () => {
     end_date_time: { date: end },
   });
   const now = parseWall('2026-10-23 12:00');
-  it('re-reads parties in the next 36 h on every run', () => {
-    expect(pageMaxAgeHours(ev('2026-10-23 22:00:00', '2026-10-24 06:00:00'), now)).toBe(1.5);
-    expect(pageMaxAgeHours(ev('2026-10-23 10:00:00', '2026-10-23 18:00:00'), now)).toBe(1.5); // live now
+  it('parties starting within 12 h (or on now): 6 h', () => {
+    expect(pageMaxAgeHours(ev('2026-10-23 22:00:00', '2026-10-24 06:00:00'), now)).toBe(6);
+    expect(pageMaxAgeHours(ev('2026-10-23 23:59:00', '2026-10-24 06:00:00'), now)).toBe(6);
+    expect(pageMaxAgeHours(ev('2026-10-23 10:00:00', '2026-10-23 18:00:00'), now)).toBe(6); // live now
   });
-  it('re-reads later parties daily and skips finished ones', () => {
-    expect(pageMaxAgeHours(ev('2026-10-25 22:00:00', '2026-10-26 06:00:00'), now)).toBe(20);
-    expect(pageMaxAgeHours(ev('2026-10-21 14:00:00', '2026-10-21 23:00:00'), now)).toBe(168);
+  it('other upcoming parties: 24 h', () => {
+    expect(pageMaxAgeHours(ev('2026-10-24 00:00:00', '2026-10-24 06:00:00'), now)).toBe(24); // 12 h away
+    expect(pageMaxAgeHours(ev('2026-10-25 22:00:00', '2026-10-26 06:00:00'), now)).toBe(24);
+  });
+  it('ended: re-read for 6 h, then never', () => {
+    expect(pageMaxAgeHours(ev('2026-10-22 23:00:00', '2026-10-23 07:00:00'), now)).toBe(6); // ended 5 h ago
+    expect(pageMaxAgeHours(ev('2026-10-22 22:00:00', '2026-10-23 05:00:00'), now)).toBe(Infinity);
+    expect(pageMaxAgeHours(ev('2026-10-21 14:00:00', '2026-10-21 23:00:00'), now)).toBe(Infinity);
   });
 });
 

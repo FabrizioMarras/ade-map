@@ -1,7 +1,7 @@
 // Merge raw program + pages + venues → public/data/ade-2026.json and ade-2026.meta.json
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
-import { RAW, ROOT, args, readJSON, readManualFixes, summary, writeJSON } from './lib.mjs';
+import { RAW, ROOT, args, readJSON, readManualFixes, readRequests, summary, writeJSON } from './lib.mjs';
 import { writeInsights } from './build-insights.mjs';
 import { mergeDuplicateVenues, sharedSpots } from './merge-venues.mjs';
 import { splitData } from './split-data.mjs';
@@ -137,6 +137,9 @@ writeJSON(
   },
   false,
 );
+// Requests this refresh made to the ADE site (list calls + event page fetches).
+const calls = readRequests();
+const requests = (calls.list ?? 0) + (calls.pages ?? 0);
 const byDay = {};
 for (const e of out) byDay[e.start.slice(0, 10)] = (byDay[e.start.slice(0, 10)] ?? 0) + 1;
 writeJSON(META, {
@@ -144,6 +147,7 @@ writeJSON(META, {
   hash,
   events: out.length,
   venues: outVenues.length,
+  requests,
   venuesBeforeMerge: usedVenues.length,
   byDay: Object.fromEntries(Object.entries(byDay).sort()),
   mergedVenues: dedup.merged,
@@ -180,6 +184,9 @@ for (const e of added.slice(0, 15)) console.log(`  + ${e.id} ${e.start} ${e.titl
 for (const e of removed.slice(0, 15)) console.log(`  - ${e.id} ${e.start} ${e.title}`);
 console.log('  changed fields:', changedList);
 if (newlySoldOut.length) console.log(`  newly sold out: ${newlySoldOut.map((e) => e.title).join('; ')}`);
+console.log(
+  `Requests to the ADE site: ${requests} (${calls.list ?? 0} list calls, ${calls.pages ?? 0} page fetches)`,
+);
 console.log(contentChanged ? `Programme changed (hash ${hash}).` : 'Programme unchanged since the last run.');
 
 const list = (items, fmt) =>
@@ -192,6 +199,8 @@ summary(
     `### ${contentChanged ? '✅ Programme updated' : '✅ Programme checked — no changes'}`,
     '',
     `**${out.length} events** at **${outVenues.length} venues** · ${perDay}`,
+    '',
+    `Requests to the ADE site: **${requests}** (${calls.list ?? 0} list calls, ${calls.pages ?? 0} page fetches)`,
     '',
     `Venues: ${usedVenues.length} records → ${outVenues.length} after merging duplicates${
       dedup.merged.length ? ` (${dedup.merged.map((m) => m.name).join(', ')})` : ''

@@ -18,12 +18,13 @@ describe('refreshDue (staleness gate of the refresh workflow)', () => {
     );
   });
 
-  it('19–26 Oct: refreshes a programme older than 90 min', () => {
-    expect(due('2026-10-18T21:30:00Z', 120)).toBe(false); // Sun 18 Oct 23:30 Amsterdam: still daily
-    expect(due('2026-10-18T22:30:00Z', 120)).toBe(true); // Mon 19 Oct 00:30 Amsterdam
-    expect(due('2026-10-23T20:00:00Z', 89)).toBe(false);
-    expect(due('2026-10-23T20:00:00Z', 91)).toBe(true);
-    expect(due('2026-10-26T22:30:00Z', 91)).toBe(true); // Mon 26 Oct 23:30 Amsterdam (CET)
+  it('19–26 Oct: refreshes a programme older than 2 h', () => {
+    expect(due('2026-10-18T21:30:00Z', 180)).toBe(false); // Sun 18 Oct 23:30 Amsterdam: still daily
+    expect(due('2026-10-18T22:30:00Z', 180)).toBe(true); // Mon 19 Oct 00:30 Amsterdam
+    expect(due('2026-10-23T20:00:00Z', 91)).toBe(false); // the old 90-min limit no longer applies
+    expect(due('2026-10-23T20:00:00Z', 119)).toBe(false);
+    expect(due('2026-10-23T20:00:00Z', 121)).toBe(true);
+    expect(due('2026-10-26T22:30:00Z', 121)).toBe(true); // Mon 26 Oct 23:30 Amsterdam (CET)
   });
 
   it('from 27 Oct: never, however old', () => {

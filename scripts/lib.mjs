@@ -6,7 +6,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 export const CACHE = join(ROOT, 'scripts/.cache');
 export const RAW = join(ROOT, 'scripts/raw');
-export const UA = 'ADE-2026-Map/1.0 (personal festival planner; low-rate, cached requests)';
+export const UA =
+  'ADE2026-Map/1.0 (unofficial fan map; https://fabriziomarras.github.io/ade-map/; contact@fmconsulting.dev)';
 export const DAYS = ['2026-10-21', '2026-10-22', '2026-10-23', '2026-10-24', '2026-10-25'];
 
 export const args = new Set(process.argv.slice(2));
@@ -23,10 +24,27 @@ export function writeJSON(path, value, pretty = true) {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+const ADE_HOST = 'www.amsterdam-dance-event.nl';
+let adeRequests = 0;
+/** HTTP requests this process has made to the ADE site (retries included). */
+export const adeRequestCount = () => adeRequests;
+
+/**
+ * Requests per refresh, by step (`list`, `pages`): each step records its own count here and
+ * build-data adds them up into ade-2026.meta.json.
+ */
+const REQUESTS = join(RAW, 'requests.json');
+export function recordRequests(step, n, { reset = false } = {}) {
+  writeJSON(REQUESTS, { ...(reset ? {} : readJSON(REQUESTS, {})), [step]: n });
+}
+export const readRequests = () => readJSON(REQUESTS, {});
+
 /** GET with a descriptive User-Agent and a few retries on transient failures. */
 export async function get(url, { accept = '*/*', tries = 3 } = {}) {
+  const ade = new URL(url).hostname === ADE_HOST;
   for (let i = 1; ; i++) {
     try {
+      if (ade) adeRequests++;
       const res = await fetch(url, { headers: { 'User-Agent': UA, Accept: accept } });
       if (res.status === 429 || res.status >= 500) throw new Error(`HTTP ${res.status}`);
       return res;

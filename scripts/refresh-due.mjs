@@ -2,7 +2,7 @@
 //
 // GitHub runs scheduled workflows late and irregularly (hours apart when busy), so the gate
 // looks at how old the published programme is instead of at the clock: before ADE week a
-// programme older than 20 h is refreshed, during the week (19–26 Oct) one older than 90 min,
+// programme older than 20 h is refreshed, during the week (19–26 Oct) one older than 2 h,
 // and from 27 Oct on nothing is refreshed. A manual run always goes ahead.
 //
 // Usage: node scripts/refresh-due.mjs [meta.json] [--manual]
@@ -24,7 +24,7 @@ export function amsterdamDate(date) {
 export function maxAge(now) {
   const day = amsterdamDate(now);
   if (day >= STOP_FROM) return null;
-  if (day >= WEEK_FROM) return 1.5 * HOUR;
+  if (day >= WEEK_FROM) return 2 * HOUR;
   return 20 * HOUR;
 }
 

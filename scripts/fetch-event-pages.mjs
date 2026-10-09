@@ -3,28 +3,32 @@ import { parse } from 'node-html-parser';
 import { join } from 'node:path';
 import {
   RAW,
+  adeRequestCount,
   amsterdamNow,
   cachedText,
   isMain,
   parseWall,
   pool,
   readJSON,
+  recordRequests,
   saveFetchedIndex,
   writeJSON,
 } from './lib.mjs';
 
-const CONCURRENCY = 6;
+const CONCURRENCY = 3; // gentle on the ADE site
 const HOUR = 3_600_000;
 
 /**
  * How old a cached event page may be. Line-ups change most for parties that are about to
- * happen, so those are re-read on every scheduled run; the rest roughly once a day.
+ * happen: those starting within 12 h (or on now) are re-read when 6 h old, other upcoming
+ * parties daily. A party that ended more than 6 h ago is never re-read (only read once, if it
+ * was never cached). Sold-out flags, times and new events come from the list, read every run.
  */
 export function pageMaxAgeHours(event, now = amsterdamNow()) {
   const start = parseWall(event.start_date_time?.date);
   const end = parseWall(event.end_date_time?.date) || start;
-  if (end < now - 6 * HOUR) return 24 * 7; // over: no need to re-read
-  return start - now < 36 * HOUR ? 1.5 : 20;
+  if (end < now - 6 * HOUR) return Infinity;
+  return start - now < 12 * HOUR ? 6 : 24;
 }
 
 const text = (el) =>
@@ -98,12 +102,14 @@ if (isMain(import.meta.url)) {
     'pages',
   );
   saveFetchedIndex();
+  recordRequests('pages', adeRequestCount());
   const details = Object.fromEntries(rows.filter(Boolean));
   writeJSON(join(RAW, 'details.json'), details);
   console.log(
     `${Object.keys(details).length} pages parsed (${fetched} fetched, ${events.length - fetched} from cache)` +
       (failures.length ? `, ${failures.length} failed` : ''),
   );
+  console.log(`${adeRequestCount()} page requests to the ADE site`);
   for (const f of failures) console.log(`  ! ${f.status ?? 'error'} ${f.url}`);
   if (stale.length)
     console.log(`${stale.length} pages could not be refreshed; their last good copy was used`);

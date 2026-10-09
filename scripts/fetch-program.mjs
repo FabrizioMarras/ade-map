@@ -1,6 +1,6 @@
 // Program list (ADE Festival, types 8262/8263), one day at a time → scripts/raw/events.json
 import { join } from 'node:path';
-import { DAYS, RAW, get, writeJSON } from './lib.mjs';
+import { DAYS, RAW, adeRequestCount, get, recordRequests, writeJSON } from './lib.mjs';
 
 const API = 'https://www.amsterdam-dance-event.nl/api/program/filter/';
 
@@ -24,3 +24,6 @@ for (const day of DAYS) {
 const events = [...byId.values()];
 writeJSON(join(RAW, 'events.json'), events);
 console.log(`${events.length} unique events → scripts/raw/events.json`);
+// The list is read on every refresh: it carries sold-out flags, times and new events.
+recordRequests('list', adeRequestCount(), { reset: true });
+console.log(`${adeRequestCount()} list calls to the ADE site`);

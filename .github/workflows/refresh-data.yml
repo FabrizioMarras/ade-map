@@ -3,9 +3,8 @@ name: Refresh programme
 # Re-runs the data pipeline so new events, line-up changes and sold-out flags reach the
 # live app on their own. GitHub runs scheduled workflows late and irregularly (often hours
 # apart), so the schedule fires often and each run checks how old the published programme is
-# (scripts/refresh-due.mjs): refreshed when older than 20 h before ADE week, older than 90 min
-# from 19 to 26 Oct, never from 27 Oct. Manual runs always refresh. See the README for an
-# external trigger that makes ADE week independent of GitHub's scheduler.
+# (scripts/refresh-due.mjs): refreshed when older than 20 h before ADE week, older than 2 h
+# from 19 to 26 Oct, never from 27 Oct. Manual runs (Actions tab) always refresh.
 on:
   schedule:
     - cron: '7,37 * * * *' # off the top of the hour, where GitHub's scheduler is busiest
