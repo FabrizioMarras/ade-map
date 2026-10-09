@@ -11,10 +11,15 @@
 
   let row: HTMLDivElement | undefined = $state();
 
+  // The display font loads after the first paint and widens the chips: scroll again then.
+  let fontsReady = $state(false);
+  document.fonts?.ready.then(() => (fontsReady = true));
+
   // Keep the selected chip in view (e.g. Sun 25 on a phone during the festival).
   $effect(() => {
     void app.day;
     void app.nowMode;
+    void fontsReady;
     const el = row?.querySelector<HTMLElement>('[aria-pressed="true"]');
     if (!row || !el) return;
     const left = el.offsetLeft - row.offsetLeft;
