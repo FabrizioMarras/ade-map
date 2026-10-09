@@ -139,3 +139,19 @@ export function asOfLabel(iso: string, now = nowWall()): string {
   const d = new Date(at);
   return `${dayShort(at)} ${MONTHS[d.getUTCMonth()]}, ${hhmm(at)}`;
 }
+
+/** During the festival a programme older than this gets a warning in the panel header. */
+export const STALE_AFTER = 6 * HOUR;
+
+/**
+ * "Programme last updated 7 h ago" while ADE is on (21–25 Oct, Amsterdam) and the programme is
+ * more than 6 hours old; otherwise null. Real elapsed time, so the switch to winter time on
+ * 25 Oct doesn't add an hour.
+ */
+export function staleNotice(iso: string, now: Date = new Date()): string | null {
+  const at = Date.parse(iso);
+  if (!Number.isFinite(at) || !festivalDay(dayKeyOf(nowWall(now)))) return null;
+  const age = now.getTime() - at;
+  if (age <= STALE_AFTER) return null;
+  return `Programme last updated ${Math.floor(age / HOUR)} h ago`;
+}

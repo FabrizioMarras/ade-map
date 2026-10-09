@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { pageMaxAgeHours } from '../../scripts/fetch-event-pages.mjs';
 import { programmeChanged } from '../../src/lib/data';
-import { asOfLabel, parseWall } from '../../src/lib/time';
+import { asOfLabel, parseWall, staleNotice } from '../../src/lib/time';
 
 describe('asOfLabel (Amsterdam time)', () => {
   const now = parseWall('2026-10-23 16:00');
@@ -39,5 +39,28 @@ describe('pageMaxAgeHours', () => {
   it('re-reads later parties daily and skips finished ones', () => {
     expect(pageMaxAgeHours(ev('2026-10-25 22:00:00', '2026-10-26 06:00:00'), now)).toBe(20);
     expect(pageMaxAgeHours(ev('2026-10-21 14:00:00', '2026-10-21 23:00:00'), now)).toBe(168);
+  });
+});
+
+describe('staleNotice', () => {
+  it('warns during the festival when the programme is more than 6 h old', () => {
+    const now = new Date('2026-10-23T18:00:00Z');
+    expect(staleNotice('2026-10-23T12:30:00Z', now)).toBeNull(); // 5.5 h
+    expect(staleNotice('2026-10-23T11:00:00Z', now)).toBe('Programme last updated 7 h ago');
+    expect(staleNotice('2026-10-21T18:00:00Z', now)).toBe('Programme last updated 48 h ago');
+  });
+  it('stays quiet outside 21–25 Oct and for unreadable dates', () => {
+    expect(staleNotice('2026-10-08T10:36:00Z', new Date('2026-10-20T12:00:00Z'))).toBeNull();
+    expect(staleNotice('2026-10-20T10:00:00Z', new Date('2026-10-26T12:00:00Z'))).toBeNull();
+    expect(staleNotice('2026-10-08T10:36:00Z', new Date('2026-10-20T22:30:00Z'))).toBe(
+      'Programme last updated 299 h ago',
+    ); // already Wed 21 Oct 00:30 in Amsterdam
+    expect(staleNotice('', new Date('2026-10-23T18:00:00Z'))).toBeNull();
+  });
+  it('counts real hours across the switch to winter time', () => {
+    // Sat 24 Oct 23:00 CEST → Sun 25 Oct 07:00 CET: 9 real hours.
+    expect(staleNotice('2026-10-24T21:00:00Z', new Date('2026-10-25T06:00:00Z'))).toBe(
+      'Programme last updated 9 h ago',
+    );
   });
 });

@@ -3,7 +3,7 @@
   import { fetchMeta, loadData, loadDescriptions, programmeChanged } from './lib/data';
   import { plural } from './lib/format';
   import { app } from './lib/store.svelte';
-  import { asOfLabel, festivalDay } from './lib/time';
+  import { asOfLabel, festivalDay, staleNotice } from './lib/time';
   import MapView from './map/Map.svelte';
   import { activeFilterCount } from './lib/filter';
   import type { AdeEvent } from './lib/types';
@@ -187,6 +187,13 @@
   }
 
   const asOf = $derived(app.data ? asOfLabel(app.checkedAt ?? app.data.generated, app.now) : '');
+  // During the festival, say so when the programme on screen is getting old (re-checked on
+  // every clock tick).
+  const STALE_H = 36; // the warning line, so a collapsed sheet still shows it
+  const stale = $derived.by(() => {
+    void app.now;
+    return app.data ? staleNotice(app.checkedAt ?? app.data.generated) : null;
+  });
 
   // When the sheet switches view, move focus to its heading if focus was inside the sheet
   // (e.g. after activating a card with the keyboard), so screen readers announce the change.
@@ -366,12 +373,15 @@
       bind:snap={app.sheet}
       bind:visible={sheetVisible}
       wide={app.wide}
-      peek={app.pulseOn ? 56 : 90}
+      peek={(app.pulseOn ? 56 : 90) + (stale ? STALE_H : 0)}
       inset={tabInset}
     >
       {#snippet top()}
         {#if app.wide && !app.pulseOn}<NavTabs variant="row" />{/if}
-        {#if !app.pulseOn && app.data}<Sparkline {bins} />{/if}
+        <!-- Not while a party, venue or chooser is open: the sheet is about that, not the week. -->
+        {#if !app.pulseOn && app.data && !app.selectedEvent && !app.selectedVenue && !app.chooser}
+          <Sparkline {bins} />
+        {/if}
       {/snippet}
       {#snippet header()}
         <div class="sheet-head">
@@ -450,6 +460,7 @@
             </div>
           {/if}
         </div>
+        {#if stale}<p class="stale" role="status">{stale}</p>{/if}
       {/snippet}
 
       {#if app.wide && app.moreOpen}
@@ -519,6 +530,20 @@
 </div>
 
 <style>
+  .stale {
+    box-sizing: border-box;
+    height: 26px;
+    margin: -2px 12px 8px;
+    padding: 0 10px;
+    line-height: 26px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-radius: var(--r-box);
+    background: var(--surface-2);
+    color: var(--muted);
+    font-size: 13px;
+  }
   .panel-more {
     padding: 4px 12px 12px;
   }

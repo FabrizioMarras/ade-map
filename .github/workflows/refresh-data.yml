@@ -1,10 +1,14 @@
 name: Refresh programme
 
 # Re-runs the data pipeline so new events, line-up changes and sold-out flags reach the
-# live app on their own: every 2 hours during ADE week, once a day otherwise.
+# live app on their own. GitHub runs scheduled workflows late and irregularly (often hours
+# apart), so the schedule fires often and each run checks how old the published programme is
+# (scripts/refresh-due.mjs): refreshed when older than 20 h before ADE week, older than 90 min
+# from 19 to 26 Oct, never from 27 Oct. Manual runs always refresh. See the README for an
+# external trigger that makes ADE week independent of GitHub's scheduler.
 on:
   schedule:
-    - cron: '17 */2 * * *' # :17 avoids the top-of-the-hour rush on GitHub's scheduler
+    - cron: '7,37 * * * *' # off the top of the hour, where GitHub's scheduler is busiest
   workflow_dispatch:
     inputs:
       force:
@@ -25,33 +29,23 @@ jobs:
     outputs:
       published: ${{ steps.publish.outputs.published }}
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Start from the last published programme
+        run: |
+          if git fetch --depth=1 origin data 2>/dev/null; then
+            git checkout FETCH_HEAD -- public/data
+          fi
+
       - name: Decide whether this run is due
         id: gate
-        run: |
-          day=$(TZ=Europe/Amsterdam date +%Y%m%d)
-          hour=$(date -u +%H)
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then due=true    # manual run
-          elif [ "$day" -gt 20261027 ]; then due=false                              # festival over
-          elif [ "$day" -ge 20261019 ]; then due=true                               # ADE week: every run
-          elif [ "$hour" = "06" ]; then due=true                                    # before: daily
-          else due=false; fi
-          echo "due=$due" >> "$GITHUB_OUTPUT"
-          echo "Amsterdam date $day, UTC hour $hour → due=$due"
+        run: node scripts/refresh-due.mjs public/data/ade-2026.meta.json ${{ github.event_name == 'workflow_dispatch' && '--manual' || '' }}
 
-      - if: steps.gate.outputs.due == 'true'
-        uses: actions/checkout@v4
       - if: steps.gate.outputs.due == 'true'
         uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - if: steps.gate.outputs.due == 'true'
         run: npm ci
-
-      - name: Start from the last published programme
-        if: steps.gate.outputs.due == 'true'
-        run: |
-          if git fetch --depth=1 origin data 2>/dev/null; then
-            git checkout FETCH_HEAD -- public/data
-          fi
 
       - name: Restore the page cache
         if: steps.gate.outputs.due == 'true'

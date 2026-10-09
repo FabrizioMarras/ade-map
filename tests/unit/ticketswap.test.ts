@@ -4,6 +4,7 @@ import {
   MAX_WORDS,
   TICKETSWAP_SEARCH,
   ticketswapQuery,
+  sellsTickets,
   ticketswapUrl,
 } from '../../src/lib/ticketswap';
 import { data } from './fixture';
@@ -86,5 +87,22 @@ describe('ticketswapUrl', () => {
   it('prefers a URL set in the data', () => {
     const url = 'https://www.ticketswap.com/event/deewee-at-paradiso/abc';
     expect(ticketswapUrl({ title: 'DEEWEE', ticketswapUrl: url })).toBe(url);
+  });
+});
+
+describe('sellsTickets (the "Resale on TicketSwap" link)', () => {
+  const ev = (ticketText: string | null, ticketUrl: string | null = 'https://t.example', free = false) => ({
+    ticketText,
+    ticketUrl,
+    free,
+  });
+  it('is shown for parties with a ticket link', () => {
+    expect(sellsTickets(ev('Buy Tickets'))).toBe(true);
+  });
+  it('is hidden for free, RSVP-only and ticketless parties', () => {
+    expect(sellsTickets(ev('RSVP'))).toBe(false);
+    expect(sellsTickets(ev('Free'))).toBe(false);
+    expect(sellsTickets(ev('Buy Tickets', 'https://t.example', true))).toBe(false);
+    expect(sellsTickets(ev(null, null))).toBe(false);
   });
 });

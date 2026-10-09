@@ -166,6 +166,14 @@
   background: var(--surface);
   box-shadow: var(--shadow);
 }
+/* A one-line label, so a pill (T24): as wide as "PLAN B" needs, never wrapping. */
+.map-ctl.planb {
+  width: auto;
+  min-width: var(--tap);
+  padding: 0 12px;
+  border-radius: var(--r-pill);
+  white-space: nowrap;
+}
 .map-ctl.planb span {
   font: 700 12px/1 var(--font-display);
   letter-spacing: 0.04em;

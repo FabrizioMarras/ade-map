@@ -14,8 +14,11 @@ npm run lint && npm run check
 
 ## Refresh the programme
 
-**Automatic.** `.github/workflows/refresh-data.yml` re-runs the pipeline every 2 hours during ADE
-week (19–26 Oct, Amsterdam time) and once a day before it. Each run:
+**Automatic.** `.github/workflows/refresh-data.yml` is scheduled every 30 minutes, but GitHub
+delays and drops scheduled runs (they often arrive hours apart), so each run decides from the age
+of the published programme whether to rebuild it (`scripts/refresh-due.mjs`): older than 20 h
+before ADE week, older than 90 min from 19 to 26 Oct (Amsterdam time), never from 27 Oct. A
+manual run always rebuilds. A rebuild:
 
 1. reads the programme list (new/removed events and sold-out flags, always fresh) and the event
    pages — every run for parties in the next 36 hours, about daily for the rest;
@@ -27,6 +30,35 @@ week (19–26 Oct, Amsterdam time) and once a day before it. Each run:
 The run summary lists added/removed events, new sell-outs and venues that couldn't be placed on
 the map (add those to `scripts/manual-fixes.json`). Trigger a run by hand from the Actions tab
 ("Refresh programme" → Run workflow), with "force" if a large drop is genuine.
+
+**External trigger for ADE week.** To stop depending on GitHub's scheduler, have an outside cron
+call the workflow's dispatch endpoint (a dispatch is a manual run, so it always rebuilds; every
+60–90 minutes is plenty):
+
+1. Create a fine-grained personal access token (GitHub → Settings → Developer settings →
+   Fine-grained tokens) with access to **only** `FabrizioMarras/ade-map` and the single
+   repository permission **Actions: Read and write**. Set it to expire after the festival
+   (e.g. 31 Oct).
+2. On [cron-job.org](https://cron-job.org) (or any scheduler), create a job running every
+   60 minutes from 19 to 26 Oct:
+   - URL: `https://api.github.com/repos/FabrizioMarras/ade-map/actions/workflows/refresh-data.yml/dispatches`
+   - Method: `POST`
+   - Headers: `Authorization: Bearer <token>`, `Accept: application/vnd.github+json`,
+     `X-GitHub-Api-Version: 2022-11-28`, `Content-Type: application/json`
+   - Body: `{"ref":"main"}`
+
+   A `204 No Content` response means the run was queued. The same call with curl:
+
+   ```sh
+   curl -X POST -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github+json" \
+     https://api.github.com/repos/FabrizioMarras/ade-map/actions/workflows/refresh-data.yml/dispatches \
+     -d '{"ref":"main"}'
+   ```
+
+3. Disable the job (and let the token expire) after the festival.
+
+During the festival (21–25 Oct) the app shows "Programme last updated N h ago" in the panel
+header when the programme it shows is more than 6 hours old.
 
 **Data on `main` is a test snapshot.** Unit and e2e tests run against `public/data` on `main`;
 every deploy (code push or refresh) then overlays the latest programme from the `data` branch.

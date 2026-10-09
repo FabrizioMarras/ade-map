@@ -80,7 +80,7 @@
       title="Plan B"
       onclick={onplanb}
     >
-      <span>Plan<br />B</span>
+      <span>Plan B</span>
     </button>
     <button
       class="map-ctl"

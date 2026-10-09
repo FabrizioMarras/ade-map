@@ -571,8 +571,14 @@ class AppState {
     return this.wide ? 'parties' : 'map';
   }
 
-  /** Map tab (phones): collapse the sheet and clear the selection. */
+  /**
+   * Map tab (phones): collapse the sheet and clear the selection, Plan B and the night route.
+   * After My list the map goes back to the day shown before, never staying on favourites.
+   */
   showMap() {
+    if (this.day === 'fav') this.setDay(this.listDay === 'fav' ? defaultDay() : this.listDay);
+    this.closePlanB();
+    this.nightPlan = null;
     this.tab = this.homeTab;
     this.close();
     if (!this.wide) this.sheet = 'collapsed';

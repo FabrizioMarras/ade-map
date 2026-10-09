@@ -3,7 +3,7 @@
   import { cleanDescription, icsUrl } from '../lib/format';
   import { directionsUrls } from '../lib/geo';
   import { canShare, eventLink } from '../lib/share';
-  import { ticketswapUrl } from '../lib/ticketswap';
+  import { sellsTickets, ticketswapUrl } from '../lib/ticketswap';
   import { app } from '../lib/store.svelte';
   import { status, statusLabel, timeRange } from '../lib/time';
   import type { AdeEvent, FacetKey } from '../lib/types';
@@ -87,7 +87,7 @@
   </div>
   {#if event.soldOut}
     <p class="notice resale-note">Resale via TicketSwap · prices capped</p>
-  {:else if event.ticketUrl}
+  {:else if sellsTickets(event)}
     <p class="notice resale-note">
       <a href={resaleUrl} target="_blank" rel="noopener">Resale on TicketSwap</a>
     </p>

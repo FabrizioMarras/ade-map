@@ -99,3 +99,11 @@ export function ticketswapUrl(e: {
     encodeURIComponent(ticketswapQuery(e.title, { venue: e.venue?.name, subtitle: e.subtitle }))
   );
 }
+
+/**
+ * A "Resale on TicketSwap" link makes sense only for parties that sell tickets: not for free or
+ * RSVP-only parties, nor those without a ticket link. (Sold out has its own TicketSwap button.)
+ */
+export function sellsTickets(e: { ticketUrl: string | null; ticketText: string | null; free: boolean }) {
+  return !!e.ticketUrl && !e.free && !/^\s*(rsvp|free)\b/i.test(e.ticketText ?? '');
+}

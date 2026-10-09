@@ -60,7 +60,22 @@
     });
     // Bottom-left, kept above the sheet / Pulse deck (see --ctrl-bottom) so the map credits
     // stay visible; the right side belongs to the control stack.
-    m.addControl(new AttributionControl({ compact: true }), 'bottom-left');
+    // Phones get the compact control, collapsed to its (i) button: MapLibre opens it until the
+    // first drag, where it covers the map. Wide screens show the credits in full.
+    const narrow = !matchMedia('(min-width: 900px)').matches;
+    m.addControl(new AttributionControl({ compact: narrow }), 'bottom-left');
+    if (narrow) {
+      // MapLibre turns the control compact (and open) once the first credits arrive.
+      const collapse = () => {
+        const el = m.getContainer().querySelector('.maplibregl-ctrl-attrib.maplibregl-compact');
+        if (!el) return;
+        el.classList.remove('maplibregl-compact-show');
+        m.off('styledata', collapse);
+        m.off('sourcedata', collapse);
+      };
+      m.on('styledata', collapse);
+      m.on('sourcedata', collapse);
+    }
     map = m;
     // Handle for end-to-end tests (project venue coordinates to screen pixels).
     (window as unknown as { __adeMap?: MlMap }).__adeMap = m;
