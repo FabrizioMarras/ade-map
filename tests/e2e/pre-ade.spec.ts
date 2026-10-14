@@ -124,3 +124,19 @@ test.describe('no ticket link', () => {
     await expect(page.getByText(/No ticket link|No ticket needed/)).toHaveCount(0);
   });
 });
+
+test('no ticket link, venue on RA: the ticket button opens the venue on RA', async ({ page }) => {
+  // The snapshot has no RA data: give the party's venue an RA page as the pipeline would.
+  await page.route('**/data/ade-2026.core.json', async (route) => {
+    const res = await route.fetch();
+    const data = await res.json();
+    const ev = data.events.find((e: { id: number }) => e.id === 2891354);
+    data.venues.find((v: { id: string }) => v.id === ev.venueId).raUrl = 'https://ra.co/clubs/12345';
+    await route.fulfill({ response: res, json: data });
+  });
+  await page.goto('./#d=21&e=2891354'); // CQTD presents From Amsterdam With Love — no link
+  const btn = page.getByRole('link', { name: 'Find tickets on RA' });
+  await expect(btn).toHaveAttribute('href', 'https://ra.co/clubs/12345');
+  await expect(btn).toHaveAttribute('target', '_blank');
+  await expect(page.locator('.detail .resale-note')).toContainText("on RA lists what's on there");
+});

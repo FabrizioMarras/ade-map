@@ -1,5 +1,5 @@
 {
-  "_readme": "Hand-maintained overrides for the data pipeline. venues: coordinates for venues the geocoder can't place (by ADE venue id). events: per-event overrides by ADE event id; ticketswapUrl replaces the generated TicketSwap search link (must be a ticketswap.com / ticketswap.nl URL); ticketUrl (https, with optional ticketText, default 'Buy Tickets') is the ticket link for a party ADE has none for, used until ADE adds its own. Example: \"2832602\": { \"ticketUrl\": \"https://www.paradiso.nl/en/program/anjunadeep-amsterdam/2913607\" }.",
+  "_readme": "Hand-maintained overrides for the data pipeline. venues: coordinates for venues the geocoder can't place (by ADE venue id). events: per-event overrides by ADE event id; ticketswapUrl replaces the generated TicketSwap search link (must be a ticketswap.com / ticketswap.nl URL); ticketUrl (https, with optional ticketText, default 'Buy Tickets') is the ticket link for a party ADE has none for, used until ADE adds its own (an ra.co link reads 'Tickets on RA'). raClubs: ADE venue id → the venue's Resident Advisor page, { name, url: https://ra.co/clubs/<n> }, the ticket button for its parties without a ticket link. Example: \"2832602\": { \"ticketUrl\": \"https://www.paradiso.nl/en/program/anjunadeep-amsterdam/2913607\" }.",
   "venues": [
     {
       "id": "1588",
@@ -83,10 +83,164 @@
     }
   ],
   "events": {
+    "2805042": {
+      "ticketUrl": "https://ra.co/events/2510273",
+      "note": "Ely Oaks & Friends: on RA, no ticket link on ADE (found 14 Oct)"
+    },
+    "2810101": {
+      "ticketUrl": "https://ra.co/events/2488526",
+      "note": "Vault Sessions | TILLATEC: on RA, no ticket link on ADE (found 14 Oct)"
+    },
+    "2823026": {
+      "ticketUrl": "https://ra.co/events/2473366",
+      "note": "Intercell x Oscar Mulero Invites: on RA, no ticket link on ADE (found 14 Oct)"
+    },
     "2832602": {
       "ticketUrl": "https://www.paradiso.nl/en/program/anjunadeep-amsterdam/2913607",
       "ticketText": "Tickets at Paradiso",
       "note": "Anjunadeep, Thu 22 Oct: sold by Paradiso, no link on ADE (checked 14 Oct)"
+    },
+    "2852600": {
+      "ticketUrl": "https://ra.co/events/2475664",
+      "note": "LASTER presents KLOCKWORKS 20 YEARS at TILLATEC: on RA, no ticket link on ADE (found 14 Oct)"
+    },
+    "2860955": {
+      "ticketUrl": "https://ra.co/events/2466451",
+      "note": "20 Years Of The WHP - The Loft: on RA, no ticket link on ADE (found 14 Oct)"
+    },
+    "2864126": {
+      "ticketUrl": "https://ra.co/events/2491520",
+      "note": "Polifonic & SMIILE: on RA, no ticket link on ADE (found 14 Oct)"
+    }
+  },
+  "raClubs": {
+    "1552": {
+      "name": "BRET",
+      "url": "https://ra.co/clubs/108549"
+    },
+    "1574": {
+      "name": "AFAS Live",
+      "url": "https://ra.co/clubs/140102"
+    },
+    "1576": {
+      "name": "Paradiso",
+      "url": "https://ra.co/clubs/2695"
+    },
+    "1662": {
+      "name": "Chicago Social Club",
+      "url": "https://ra.co/clubs/43438"
+    },
+    "37303": {
+      "name": "Club UP",
+      "url": "https://ra.co/clubs/38637"
+    },
+    "45647": {
+      "name": "The Loft Amsterdam",
+      "url": "https://ra.co/clubs/190657"
+    },
+    "49689": {
+      "name": "Black Gold Amsterdam Coffee & Vinyl",
+      "url": "https://ra.co/clubs/124535"
+    },
+    "52905": {
+      "name": "InDeep'n'Dance Records",
+      "url": "https://ra.co/clubs/4395"
+    },
+    "59026": {
+      "name": "A'DAM Toren",
+      "url": "https://ra.co/clubs/125668"
+    },
+    "1488467": {
+      "name": "Blend XL",
+      "url": "https://ra.co/clubs/204369"
+    },
+    "1491389": {
+      "name": "Oliva",
+      "url": "https://ra.co/clubs/179504"
+    },
+    "1511191": {
+      "name": "The Bas[s]ment",
+      "url": "https://ra.co/clubs/218407"
+    },
+    "1632189": {
+      "name": "Bar Twenty Two",
+      "url": "https://ra.co/clubs/224568"
+    },
+    "1639671": {
+      "name": "Bar Feijoa",
+      "url": "https://ra.co/clubs/175903"
+    },
+    "2081815": {
+      "name": "Toekomstmuziek",
+      "url": "https://ra.co/clubs/199902"
+    },
+    "2118851": {
+      "name": "Hearth",
+      "url": "https://ra.co/clubs/194483"
+    },
+    "2140315": {
+      "name": "Kadinsky Cafe",
+      "url": "https://ra.co/clubs/221828"
+    },
+    "2229239": {
+      "name": "nachbar",
+      "url": "https://ra.co/clubs/243352"
+    },
+    "2484771": {
+      "name": "Benelux Bar",
+      "url": "https://ra.co/clubs/217595"
+    },
+    "2498154": {
+      "name": "50:HERTZ CLUB TRAIN 2026",
+      "url": "https://ra.co/clubs/304410"
+    },
+    "2507805": {
+      "name": "Huis Van Iemand Anders",
+      "url": "https://ra.co/clubs/141942"
+    },
+    "2534398": {
+      "name": "KILLACUTZ",
+      "url": "https://ra.co/clubs/204597"
+    },
+    "2676950": {
+      "name": "Heineken Hoek",
+      "url": "https://ra.co/clubs/83923"
+    },
+    "2706057": {
+      "name": "Splendor",
+      "url": "https://ra.co/clubs/179743"
+    },
+    "2811365": {
+      "name": "Blast Galaxy",
+      "url": "https://ra.co/clubs/153386"
+    },
+    "2812614": {
+      "name": "Pllek",
+      "url": "https://ra.co/clubs/86709"
+    },
+    "2816561": {
+      "name": "Waterhouse Studios",
+      "url": "https://ra.co/clubs/274196"
+    },
+    "2822761": {
+      "name": "BASEMENT",
+      "url": "https://ra.co/clubs/284845"
+    },
+    "2840578": {
+      "name": "WIHH Art Gallery",
+      "url": "https://ra.co/clubs/266780"
+    },
+    "2847887": {
+      "name": "art'otel Amsterdam",
+      "url": "https://ra.co/clubs/248822"
+    },
+    "2889208": {
+      "name": "Ruimte 59-61",
+      "url": "https://ra.co/clubs/151490"
+    },
+    "2937764": {
+      "name": "Rokin 75",
+      "url": "https://ra.co/clubs/124503"
     }
   }
 }

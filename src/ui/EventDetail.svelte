@@ -24,6 +24,10 @@
 
   const st = $derived(status(event, app.now));
   const resaleUrl = $derived(ticketswapUrl(event));
+  // No ticket link (and not free): the venue's RA page, which lists what's on there.
+  const raVenue = $derived(
+    !event.ticketUrl && !event.soldOut && !event.free ? (event.venue.raUrl ?? null) : null,
+  );
   const dirs = $derived(directionsUrls(event.venue.lat, event.venue.lng, event.venue.name));
   const description = $derived(cleanDescription(app.descriptions?.get(event.id) ?? event.description ?? ''));
   const tagGroups = $derived(
@@ -77,6 +81,10 @@
       <a class="btn primary" href={event.ticketUrl} target="_blank" rel="noopener"
         ><Icon name="ticket" /><span class="label">{event.ticketText || 'Buy tickets'}</span></a
       >
+    {:else if raVenue}
+      <a class="btn primary" href={raVenue} target="_blank" rel="noopener"
+        ><Icon name="ticket" />Find tickets on RA</a
+      >
     {/if}
     <a class="btn" href={event.url} target="_blank" rel="noopener"><Icon name="external" />ADE page</a>
     <a class="btn" href={icsUrl(event.id)}><Icon name="calendar" />Add to calendar</a>
@@ -96,7 +104,9 @@
     <p class="notice resale-note">
       {event.free
         ? 'Free entry. No ticket needed.'
-        : 'No ticket link on ADE yet. Check the organiser or venue.'}
+        : raVenue
+          ? `No ticket link on ADE yet. ${event.venue.name} on RA lists what's on there.`
+          : 'No ticket link on ADE yet. Check the organiser or venue.'}
     </p>
   {/if}
 

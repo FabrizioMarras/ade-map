@@ -5,7 +5,7 @@ import { RAW, ROOT, args, readJSON, readManualFixes, readRequests, summary, writ
 import { writeInsights } from './build-insights.mjs';
 import { mergeDuplicateVenues, sharedSpots } from './merge-venues.mjs';
 import { splitData } from './split-data.mjs';
-import { ticketLink } from './tickets.mjs';
+import { raClubFor, raClubUrl, ticketLink, validRaClub } from './tickets.mjs';
 
 const OUT = join(ROOT, 'public/data/ade-2026.json');
 const META = join(ROOT, 'public/data/ade-2026.meta.json');
@@ -28,7 +28,12 @@ const report = {
   redundantOverrides: [],
   notALink: [],
 };
-const eventFixes = readManualFixes().events;
+const { events: eventFixes, raClubs } = readManualFixes();
+for (const [id, entry] of Object.entries(raClubs))
+  if (!validRaClub(raClubUrl(entry)))
+    report.badOverrides.push(
+      `venue ${id} raClubs is not an https://ra.co/clubs/<n> URL: ${JSON.stringify(entry)}`,
+    );
 const TICKETSWAP_HOST = /^https:\/\/(www\.)?ticketswap\.(com|nl)\//;
 
 const out = [];
@@ -88,6 +93,12 @@ const dedup = mergeDuplicateVenues(usedVenues, out);
 const outVenues = dedup.venues;
 out.splice(0, out.length, ...dedup.events);
 const spots = sharedSpots(outVenues);
+// Venues on Resident Advisor (manual-fixes.json raClubs): the fallback for parties without a
+// ticket link, re-applied on every refresh so new parties there get it too.
+for (const v of outVenues) {
+  const ra = raClubFor(v, raClubs);
+  if (ra) v.raUrl = ra;
+}
 for (const v of outVenues) {
   if (v.lat < BOUNDS.minLat || v.lat > BOUNDS.maxLat || v.lng < BOUNDS.minLng || v.lng > BOUNDS.maxLng) {
     report.outsideBbox.push(`${v.id} ${v.name} (${v.lat}, ${v.lng})`);

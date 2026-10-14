@@ -51,7 +51,28 @@ export function ticketLink(event, details, fix = {}) {
     notes.push({ kind: 'redundantOverride', text: `ADE now links ${ticketUrl}` });
   else if (fix.ticketUrl) {
     ticketUrl = fix.ticketUrl;
-    ticketText = fix.ticketText || 'Buy Tickets';
+    ticketText = fix.ticketText || (isRaUrl(fix.ticketUrl) ? 'Tickets on RA' : 'Buy Tickets');
   }
   return { ticketUrl, ticketText, notes };
+}
+
+const isRaUrl = (url) => /^https:\/\/([a-z]{2}\.)?ra\.co\//.test(url);
+const RA_CLUB = /^https:\/\/ra\.co\/clubs\/\d+$/;
+
+/** An raClubs entry: the URL, or `{ name, url }` (the name only helps whoever edits the file). */
+export const raClubUrl = (entry) => (typeof entry === 'string' ? entry : (entry?.url ?? null));
+
+/** A venue's page on Resident Advisor ("https://ra.co/clubs/<n>"), as set in manual-fixes.json. */
+export const validRaClub = (url) => RA_CLUB.test(url ?? '');
+
+/**
+ * The RA club page for a venue, matched by its ADE id or the ids of duplicate records merged
+ * into it. Parties at the venue without a ticket link point there: it lists what's on.
+ */
+export function raClubFor(venue, raClubs) {
+  for (const id of [venue.id, ...(venue.aliases ?? [])]) {
+    const url = raClubUrl(raClubs[id]);
+    if (url && validRaClub(url)) return url;
+  }
+  return null;
 }

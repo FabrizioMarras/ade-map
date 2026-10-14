@@ -69,8 +69,15 @@ that matters, set the link by hand in `scripts/manual-fixes.json`:
 "events": { "2832602": { "ticketUrl": "https://www.paradiso.nl/en/program/anjunadeep-amsterdam/2913607" } }
 ```
 
-`ticketText` is optional (default "Buy Tickets"). Once ADE adds its own link, ADE's wins and the
-run summary lists the override for removal.
+`ticketText` is optional (default "Buy Tickets", or "Tickets on RA" for an `ra.co` link). Once
+ADE adds its own link, ADE's wins and the run summary lists the override for removal.
+
+**Resident Advisor.** Parties without any ticket link get a "Find tickets on RA" button to their
+venue's RA page (which lists what's on there) when the venue is in `raClubs` in
+`scripts/manual-fixes.json`: `"<ADE venue id>": { "name": "...", "url": "https://ra.co/clubs/<n>" }`.
+Every refresh re-applies it, so parties added later get it too. RA's terms forbid automated
+access to their site, so the pipeline never queries RA: the club pages and RA event links in the
+file were found by web search and checked by hand.
 
 `public/data/ade-2026.json` is the full dataset; the app loads `ade-2026.core.json` (no
 descriptions) first and `ade-2026.text.json` in the background. `basemap.json` is only used when

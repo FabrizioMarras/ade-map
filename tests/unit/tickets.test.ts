@@ -1,5 +1,13 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { normaliseTicketUrl, ticketLink, validTicketOverride } from '../../scripts/tickets.mjs';
+import {
+  normaliseTicketUrl,
+  raClubFor,
+  raClubUrl,
+  ticketLink,
+  validRaClub,
+  validTicketOverride,
+} from '../../scripts/tickets.mjs';
 
 describe('normaliseTicketUrl', () => {
   it('keeps full URLs exactly as they are', () => {
@@ -78,5 +86,60 @@ describe('ticketLink', () => {
     expect(r.notes[0].kind).toBe('badOverride');
     expect(validTicketOverride(PARADISO)).toBe(true);
     expect(validTicketOverride('http://paradiso.nl')).toBe(false);
+  });
+});
+
+describe('Resident Advisor', () => {
+  const event = { id: 1, url: 'https://www.amsterdam-dance-event.nl/en/program/2026/x/1/' };
+  const none = { ticketUrl: '', ticketText: '', adeCart: false };
+
+  it('a hand-set RA event link reads "Tickets on RA" unless a text is given', () => {
+    expect(ticketLink(event, none, { ticketUrl: 'https://ra.co/events/2555504' }).ticketText).toBe(
+      'Tickets on RA',
+    );
+    expect(ticketLink(event, none, { ticketUrl: 'https://nl.ra.co/events/2555504' }).ticketText).toBe(
+      'Tickets on RA',
+    );
+    expect(
+      ticketLink(event, none, { ticketUrl: 'https://ra.co/events/2555504', ticketText: 'Buy on RA' })
+        .ticketText,
+    ).toBe('Buy on RA');
+  });
+
+  it('finds the club page by venue id or the id of a merged duplicate', () => {
+    const clubs = { '2590176': 'https://ra.co/clubs/12345', '77': 'https://ra.co/clubs/999' };
+    expect(raClubFor({ id: '2590176' }, clubs)).toBe('https://ra.co/clubs/12345');
+    expect(raClubFor({ id: '1', aliases: ['77'] }, clubs)).toBe('https://ra.co/clubs/999');
+    expect(raClubFor({ id: '2' }, clubs)).toBeNull();
+    // The form manual-fixes.json uses: the name only helps whoever edits the file.
+    expect(raClubFor({ id: '1576' }, { '1576': { name: 'Paradiso', url: 'https://ra.co/clubs/2695' } })).toBe(
+      'https://ra.co/clubs/2695',
+    );
+  });
+
+  it('only accepts https://ra.co/clubs/<n>', () => {
+    expect(validRaClub('https://ra.co/clubs/12345')).toBe(true);
+    for (const bad of [
+      'https://nl.ra.co/clubs/1',
+      'https://ra.co/clubs/1/events',
+      'https://ra.co/events/1',
+      'ra.co/clubs/1',
+    ])
+      expect(validRaClub(bad)).toBe(false);
+    expect(raClubFor({ id: '3' }, { '3': 'https://ra.co/events/1' })).toBeNull();
+  });
+});
+
+describe('scripts/manual-fixes.json', () => {
+  const fixes = JSON.parse(readFileSync('scripts/manual-fixes.json', 'utf8'));
+
+  it('every RA club entry is a valid https://ra.co/clubs/<n> page', () => {
+    for (const [id, entry] of Object.entries(fixes.raClubs ?? {}))
+      expect(validRaClub(raClubUrl(entry)), `venue ${id}`).toBe(true);
+  });
+
+  it('every hand-set ticket link is https', () => {
+    for (const [id, fix] of Object.entries<{ ticketUrl?: string }>(fixes.events ?? {}))
+      if (fix.ticketUrl) expect(validTicketOverride(fix.ticketUrl), `event ${id}`).toBe(true);
   });
 });

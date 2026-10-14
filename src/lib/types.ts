@@ -8,6 +8,8 @@ export interface Venue {
   geo: string;
   /** Ids of duplicate records merged into this venue (old #v= links still resolve). */
   aliases?: string[];
+  /** The venue's page on Resident Advisor, for parties here without a ticket link. */
+  raUrl?: string;
 }
 
 export interface RawEvent {
