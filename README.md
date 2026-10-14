@@ -59,6 +59,19 @@ Raw responses are cached in `scripts/.cache/` (the ADE site sends no ETag). Venu
 resolve keep their previous coordinates if the address is unchanged; otherwise add them to
 `scripts/manual-fixes.json`.
 
+**Ticket links.** About a third of the parties have no ticket link on ADE: mostly free walk-in
+events (in-store sessions, showcases, networking, bar nights), plus club nights whose organiser
+hasn't given ADE a link yet. The pipeline cleans up what ADE has (adds a missing `https://`,
+drops text that isn't a link, links the ADE page for parties sold in ADE's own shop). For a party
+that matters, set the link by hand in `scripts/manual-fixes.json`:
+
+```json
+"events": { "2832602": { "ticketUrl": "https://www.paradiso.nl/en/program/anjunadeep-amsterdam/2913607" } }
+```
+
+`ticketText` is optional (default "Buy Tickets"). Once ADE adds its own link, ADE's wins and the
+run summary lists the override for removal.
+
 `public/data/ade-2026.json` is the full dataset; the app loads `ade-2026.core.json` (no
 descriptions) first and `ade-2026.text.json` in the background. `basemap.json` is only used when
 the OpenFreeMap style can't load. The footer shows when the programme was last checked; the

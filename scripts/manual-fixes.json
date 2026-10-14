@@ -1,5 +1,5 @@
 {
-  "_readme": "Hand-maintained overrides for the data pipeline. venues: coordinates for venues the geocoder can't place (by ADE venue id). events: per-event overrides by ADE event id; ticketswapUrl replaces the generated TicketSwap search link (must be a ticketswap.com / ticketswap.nl URL).",
+  "_readme": "Hand-maintained overrides for the data pipeline. venues: coordinates for venues the geocoder can't place (by ADE venue id). events: per-event overrides by ADE event id; ticketswapUrl replaces the generated TicketSwap search link (must be a ticketswap.com / ticketswap.nl URL); ticketUrl (https, with optional ticketText, default 'Buy Tickets') is the ticket link for a party ADE has none for, used until ADE adds its own. Example: \"2832602\": { \"ticketUrl\": \"https://www.paradiso.nl/en/program/anjunadeep-amsterdam/2913607\" }.",
   "venues": [
     {
       "id": "1588",
@@ -82,5 +82,11 @@
       "note": "manual (approx.)"
     }
   ],
-  "events": {}
+  "events": {
+    "2832602": {
+      "ticketUrl": "https://www.paradiso.nl/en/program/anjunadeep-amsterdam/2913607",
+      "ticketText": "Tickets at Paradiso",
+      "note": "Anjunadeep, Thu 22 Oct: sold by Paradiso, no link on ADE (checked 14 Oct)"
+    }
+  }
 }

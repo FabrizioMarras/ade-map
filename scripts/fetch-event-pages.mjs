@@ -48,6 +48,8 @@ export function parseEventPage(html, lineupFallback = []) {
   const venueId = /\/venues\/[^/]+\/(\d+)\/?/.exec(venueHref)?.[1] ?? null;
   const address = text(root.querySelector('.ade-info-bar__data-link[href*="google.com/maps"]'));
   const ticket = root.querySelector('a.ade-info-bar__button');
+  // Parties sold in ADE's own shop have a button opening a cart on the event page, not a link.
+  const cart = ticket ? null : root.querySelector('button.ade-info-bar__modal-button');
   const tags = uniq(root.querySelectorAll('.ade-info-bar__data-link[href*="category"]').map(text));
   const image = root.querySelector('meta[property="og:image"]')?.getAttribute('content') ?? '';
 
@@ -71,7 +73,8 @@ export function parseEventPage(html, lineupFallback = []) {
     address,
     lineup,
     ticketUrl: ticket?.getAttribute('href') ?? '',
-    ticketText: text(ticket),
+    ticketText: text(ticket ?? cart),
+    adeCart: !!cart,
     tags,
     image,
     description,

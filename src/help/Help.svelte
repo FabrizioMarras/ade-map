@@ -58,7 +58,8 @@
           The yellow button goes to the official shop. <span class="badge so">Sold out</span> parties show
           <span class="ui">Check TicketSwap</span> instead, which opens a TicketSwap search for that party
           (fan-to-fan resale, prices capped). Parties that still sell tickets also have a small
-          <span class="ui">Resale on TicketSwap</span> link.
+          <span class="ui">Resale on TicketSwap</span> link. When ADE has no ticket link, the party says so: free
+          parties need no ticket; for the rest, the organiser or venue may sell them elsewhere, or not yet.
         </p>
       </div>
     </div>

@@ -57,10 +57,26 @@ describe('event page parser', () => {
       lineup: ['DJ One (NL)', 'DJ Two'],
       ticketUrl: 'https://tickets/x',
       ticketText: 'Buy Tickets',
+      adeCart: false,
       tags: ['House', 'Techno'],
       image: 'https://cdn/x.webp',
       description:
         'A long description line that is clearly longer than forty characters. Second sentence here.',
+    });
+  });
+
+  it("recognises a party sold in ADE's own shop (a cart button, not a link)", () => {
+    const cart = `<main><div class="ade-info-bar__container"><button class="ade-info-bar__button ade-info-bar__button--fixed ade-info-bar__modal-button ade-button"><span class="ade-info-bar__button-icon"><?xml version="1.0" encoding="UTF-8"?><svg></svg></span>
+          Buy Tickets
+        </button></div></main>`;
+    expect(parseEventPage(cart)).toMatchObject({ ticketUrl: '', ticketText: 'Buy Tickets', adeCart: true });
+  });
+
+  it('a page without any ticket button', () => {
+    expect(parseEventPage('<main><p>Nothing to buy here.</p></main>')).toMatchObject({
+      ticketUrl: '',
+      ticketText: '',
+      adeCart: false,
     });
   });
 });

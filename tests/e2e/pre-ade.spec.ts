@@ -101,3 +101,26 @@ test.describe('Resale on TicketSwap', () => {
     });
   }
 });
+
+test.describe('no ticket link', () => {
+  const note = (page: Page) => page.locator('.detail .resale-note');
+
+  test('a free party says no ticket is needed', async ({ page }) => {
+    await page.goto('./#d=21&e=2883695'); // BAM! x MMF x EMMA — Free Festival Events, no link
+    await expect(page.locator('.detail')).toBeVisible();
+    await expect(note(page)).toHaveText('Free entry. No ticket needed.');
+    await expect(page.locator('.detail .actions .btn.primary')).toHaveCount(0);
+  });
+
+  test('any other party points to the organiser or venue', async ({ page }) => {
+    await page.goto('./#d=21&e=2891354'); // CQTD presents From Amsterdam With Love — no link
+    await expect(page.locator('.detail')).toBeVisible();
+    await expect(note(page)).toHaveText('No ticket link on ADE yet. Check the organiser or venue.');
+  });
+
+  test('a party with a ticket link shows no such note', async ({ page }) => {
+    await page.goto('./#d=21&e=2843412'); // 313X020 — Buy Tickets
+    await expect(page.getByRole('link', { name: 'Buy Tickets' })).toBeVisible();
+    await expect(page.getByText(/No ticket link|No ticket needed/)).toHaveCount(0);
+  });
+});

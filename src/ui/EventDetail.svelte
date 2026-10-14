@@ -91,6 +91,13 @@
     <p class="notice resale-note">
       <a href={resaleUrl} target="_blank" rel="noopener">Resale on TicketSwap</a>
     </p>
+  {:else if !event.ticketUrl}
+    <!-- Most parties without a link are walk-in events; for the rest ADE may add one later. -->
+    <p class="notice resale-note">
+      {event.free
+        ? 'Free entry. No ticket needed.'
+        : 'No ticket link on ADE yet. Check the organiser or venue.'}
+    </p>
   {/if}
 
   {#if event.lineup.length}

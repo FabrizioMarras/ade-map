@@ -5,6 +5,7 @@ import { RAW, ROOT, args, readJSON, readManualFixes, readRequests, summary, writ
 import { writeInsights } from './build-insights.mjs';
 import { mergeDuplicateVenues, sharedSpots } from './merge-venues.mjs';
 import { splitData } from './split-data.mjs';
+import { ticketLink } from './tickets.mjs';
 
 const OUT = join(ROOT, 'public/data/ade-2026.json');
 const META = join(ROOT, 'public/data/ade-2026.meta.json');
@@ -18,7 +19,15 @@ const previous = readJSON(OUT, { events: [], venues: [] });
 
 const wall = (d) => d.date.slice(0, 16); // "2026-10-21 14:00:00.000000" → "2026-10-21 14:00"
 const venuesById = new Map(venues.map((v) => [v.id, v]));
-const report = { noDetails: [], noVenue: [], unlocated: [], outsideBbox: [], badOverrides: [] };
+const report = {
+  noDetails: [],
+  noVenue: [],
+  unlocated: [],
+  outsideBbox: [],
+  badOverrides: [],
+  redundantOverrides: [],
+  notALink: [],
+};
 const eventFixes = readManualFixes().events;
 const TICKETSWAP_HOST = /^https:\/\/(www\.)?ticketswap\.(com|nl)\//;
 
@@ -38,6 +47,13 @@ for (const e of events) {
     continue;
   }
   const categories = e.categories ?? '';
+  const { ticketUrl, ticketText, notes } = ticketLink(e, d, eventFixes[e.id]);
+  for (const n of notes) {
+    const line = `${e.id} ${e.title}: ${n.text}`;
+    if (n.kind === 'notALink') report.notALink.push(line);
+    else if (n.kind === 'badOverride') report.badOverrides.push(line);
+    else report.redundantOverrides.push(line);
+  }
   out.push({
     id: e.id,
     title: e.title,
@@ -52,8 +68,8 @@ for (const e of events) {
     categories,
     interests: d.tags.length ? d.tags : categories.split(' / ').filter(Boolean),
     lineup: d.lineup,
-    ticketUrl: d.ticketUrl || null,
-    ticketText: d.ticketUrl ? d.ticketText : null,
+    ticketUrl,
+    ticketText,
     image: d.image,
     description: d.description,
   });
@@ -218,6 +234,12 @@ summary(
     report.badOverrides.length
       ? `\n**Needs attention** (not on the map — add to \`scripts/manual-fixes.json\`)\n${list(
           [...report.unlocated, ...report.noVenue, ...report.outsideBbox, ...report.badOverrides],
+          (x) => x,
+        )}`
+      : '',
+    report.redundantOverrides.length
+      ? `\n**Hand-set ticket links ADE now provides** (remove from \`scripts/manual-fixes.json\`)\n${list(
+          report.redundantOverrides,
           (x) => x,
         )}`
       : '',
