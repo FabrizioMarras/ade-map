@@ -24,10 +24,21 @@
 
   const st = $derived(status(event, app.now));
   const resaleUrl = $derived(ticketswapUrl(event));
-  // No ticket link (and not free): the venue's RA page, which lists what's on there.
-  const raVenue = $derived(
-    !event.ticketUrl && !event.soldOut && !event.free ? (event.venue.raUrl ?? null) : null,
-  );
+  // No ticket link (and not free or sold out): where to look instead. The venue's own agenda
+  // first, else its Resident Advisor page; both list what's on there.
+  const elsewhere = $derived.by(() => {
+    if (event.ticketUrl || event.soldOut || event.free) return null;
+    const v = event.venue;
+    if (v.siteUrl)
+      return {
+        url: v.siteUrl,
+        label: `Find tickets at ${v.name}`,
+        note: `${v.name} lists its events on its own site.`,
+      };
+    if (v.raUrl)
+      return { url: v.raUrl, label: 'Find tickets on RA', note: `${v.name} on RA lists what's on there.` };
+    return null;
+  });
   const dirs = $derived(directionsUrls(event.venue.lat, event.venue.lng, event.venue.name));
   const description = $derived(cleanDescription(app.descriptions?.get(event.id) ?? event.description ?? ''));
   const tagGroups = $derived(
@@ -81,9 +92,9 @@
       <a class="btn primary" href={event.ticketUrl} target="_blank" rel="noopener"
         ><Icon name="ticket" /><span class="label">{event.ticketText || 'Buy tickets'}</span></a
       >
-    {:else if raVenue}
-      <a class="btn primary" href={raVenue} target="_blank" rel="noopener"
-        ><Icon name="ticket" />Find tickets on RA</a
+    {:else if elsewhere}
+      <a class="btn primary" href={elsewhere.url} target="_blank" rel="noopener"
+        ><Icon name="ticket" /><span class="label">{elsewhere.label}</span></a
       >
     {/if}
     <a class="btn" href={event.url} target="_blank" rel="noopener"><Icon name="external" />ADE page</a>
@@ -104,9 +115,7 @@
     <p class="notice resale-note">
       {event.free
         ? 'Free entry. No ticket needed.'
-        : raVenue
-          ? `No ticket link on ADE yet. ${event.venue.name} on RA lists what's on there.`
-          : 'No ticket link on ADE yet. Check the organiser or venue.'}
+        : `No ticket link on ADE yet. ${elsewhere?.note ?? 'Check the organiser or venue.'}`}
     </p>
   {/if}
 

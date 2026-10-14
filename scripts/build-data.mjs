@@ -5,7 +5,15 @@ import { RAW, ROOT, args, readJSON, readManualFixes, readRequests, summary, writ
 import { writeInsights } from './build-insights.mjs';
 import { mergeDuplicateVenues, sharedSpots } from './merge-venues.mjs';
 import { splitData } from './split-data.mjs';
-import { raClubFor, raClubUrl, ticketLink, validRaClub } from './tickets.mjs';
+import {
+  entryUrl,
+  hasTicketButton,
+  raClubFor,
+  ticketLink,
+  validRaClub,
+  validVenueSite,
+  venueSiteFor,
+} from './tickets.mjs';
 
 const OUT = join(ROOT, 'public/data/ade-2026.json');
 const META = join(ROOT, 'public/data/ade-2026.meta.json');
@@ -28,11 +36,16 @@ const report = {
   redundantOverrides: [],
   notALink: [],
 };
-const { events: eventFixes, raClubs } = readManualFixes();
+const { events: eventFixes, raClubs, venueSites } = readManualFixes();
 for (const [id, entry] of Object.entries(raClubs))
-  if (!validRaClub(raClubUrl(entry)))
+  if (!validRaClub(entryUrl(entry)))
     report.badOverrides.push(
       `venue ${id} raClubs is not an https://ra.co/clubs/<n> URL: ${JSON.stringify(entry)}`,
+    );
+for (const [id, entry] of Object.entries(venueSites))
+  if (!validVenueSite(entryUrl(entry)))
+    report.badOverrides.push(
+      `venue ${id} venueSites is not an https URL of the venue's own site: ${JSON.stringify(entry)}`,
     );
 const TICKETSWAP_HOST = /^https:\/\/(www\.)?ticketswap\.(com|nl)\//;
 
@@ -93,9 +106,12 @@ const dedup = mergeDuplicateVenues(usedVenues, out);
 const outVenues = dedup.venues;
 out.splice(0, out.length, ...dedup.events);
 const spots = sharedSpots(outVenues);
-// Venues on Resident Advisor (manual-fixes.json raClubs): the fallback for parties without a
-// ticket link, re-applied on every refresh so new parties there get it too.
+// Where to look for tickets when a party has no ticket link (manual-fixes.json): the venue's own
+// agenda page, else its Resident Advisor page. Re-applied on every refresh, so new parties at
+// these venues get it too.
 for (const v of outVenues) {
+  const site = venueSiteFor(v, venueSites);
+  if (site) v.siteUrl = site;
   const ra = raClubFor(v, raClubs);
   if (ra) v.raUrl = ra;
 }
@@ -196,6 +212,12 @@ const changedList =
     .map(([f, n]) => `${f} ${n}`)
     .join(', ') || 'none';
 const contentChanged = hash !== previous.hash;
+// Parties the app shows no way in for (no ticket link, not free or sold out, venue not mapped):
+// the new ones are listed in the run summary, so a link can be set by hand.
+const venueById = new Map(outVenues.map((v) => [v.id, v]));
+const noButton = out.filter((e) => !hasTicketButton(e, venueById.get(e.venueId)));
+const newNoButton = noButton.filter((e) => !prevById.has(e.id));
+const partyLine = (e) => `${e.id} · ${e.start} — ${e.title} @ ${venueById.get(e.venueId).name}`;
 console.log(`\n${out.length} events at ${outVenues.length} venues → public/data/ade-2026.json`);
 console.log('Per day:', perDay);
 console.log(`Venues: ${usedVenues.length} records → ${outVenues.length} after merging duplicates`);
@@ -214,6 +236,8 @@ if (newlySoldOut.length) console.log(`  newly sold out: ${newlySoldOut.map((e) =
 console.log(
   `Requests to the ADE site: ${requests} (${calls.list ?? 0} list calls, ${calls.pages ?? 0} page fetches)`,
 );
+console.log(`No ticket button: ${noButton.length} parties (${newNoButton.length} new in this run)`);
+for (const e of newNoButton.slice(0, 30)) console.log(`  ? ${partyLine(e)}`);
 console.log(contentChanged ? `Programme changed (hash ${hash}).` : 'Programme unchanged since the last run.');
 
 const list = (items, fmt) =>
@@ -248,6 +272,12 @@ summary(
           (x) => x,
         )}`
       : '',
+    newNoButton.length
+      ? `\n**New parties with no ticket button** (${newNoButton.length} new, ${noButton.length} in total) — set a ticket link in \`scripts/manual-fixes.json\` (\`events\`), or map the venue (\`venueSites\` / \`raClubs\`)\n${list(
+          newNoButton,
+          partyLine,
+        )}`
+      : `\nEvery new party has a ticket button (${noButton.length} older parties still have none).`,
     report.redundantOverrides.length
       ? `\n**Hand-set ticket links ADE now provides** (remove from \`scripts/manual-fixes.json\`)\n${list(
           report.redundantOverrides,

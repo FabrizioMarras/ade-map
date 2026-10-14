@@ -1,12 +1,17 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { FREE_TAGS as APP_FREE_TAGS } from '../../src/lib/facets';
 import {
+  FREE_TAGS,
+  hasTicketButton,
   normaliseTicketUrl,
   raClubFor,
   raClubUrl,
   ticketLink,
   validRaClub,
   validTicketOverride,
+  validVenueSite,
+  venueSiteFor,
 } from '../../scripts/tickets.mjs';
 
 describe('normaliseTicketUrl', () => {
@@ -138,8 +143,54 @@ describe('scripts/manual-fixes.json', () => {
       expect(validRaClub(raClubUrl(entry)), `venue ${id}`).toBe(true);
   });
 
+  it("every venue site is an https page on the venue's own site", () => {
+    for (const [id, entry] of Object.entries(fixes.venueSites ?? {}))
+      expect(validVenueSite(raClubUrl(entry)), `venue ${id}`).toBe(true);
+  });
+
   it('every hand-set ticket link is https', () => {
     for (const [id, fix] of Object.entries<{ ticketUrl?: string }>(fixes.events ?? {}))
       if (fix.ticketUrl) expect(validTicketOverride(fix.ticketUrl), `event ${id}`).toBe(true);
+  });
+});
+
+describe("venue's own agenda page", () => {
+  const sites = { '1576': { name: 'Paradiso', url: 'https://www.paradiso.nl/en/program' } };
+
+  it('is found by venue id or a merged duplicate id', () => {
+    expect(venueSiteFor({ id: '1576' }, sites)).toBe('https://www.paradiso.nl/en/program');
+    expect(venueSiteFor({ id: '9', aliases: ['1576'] }, sites)).toBe('https://www.paradiso.nl/en/program');
+    expect(venueSiteFor({ id: '9' }, sites)).toBeNull();
+  });
+
+  it('must be https and not RA or ADE', () => {
+    expect(validVenueSite('https://www.paradiso.nl/en/program')).toBe(true);
+    for (const bad of [
+      'http://www.paradiso.nl/',
+      'https://ra.co/clubs/2695',
+      'https://nl.ra.co/clubs/2695',
+      'https://www.amsterdam-dance-event.nl/en/venues/paradiso/1576/',
+      'www.paradiso.nl',
+    ])
+      expect(validVenueSite(bad), bad).toBe(false);
+  });
+});
+
+describe('hasTicketButton (run summary: parties with no way in)', () => {
+  const party = (o = {}) => ({ ticketUrl: null, soldOut: false, interests: ['House'], ...o });
+  it('a ticket link, sold out (TicketSwap) or free entry counts', () => {
+    expect(hasTicketButton(party({ ticketUrl: 'https://t.example' }), {})).toBe(true);
+    expect(hasTicketButton(party({ soldOut: true }), {})).toBe(true);
+    expect(hasTicketButton(party({ interests: ['Free Festival Events'] }), {})).toBe(true);
+  });
+  it("so does the venue's agenda or RA page", () => {
+    expect(hasTicketButton(party(), { siteUrl: 'https://www.paradiso.nl/en/program' })).toBe(true);
+    expect(hasTicketButton(party(), { raUrl: 'https://ra.co/clubs/2695' })).toBe(true);
+  });
+  it('otherwise none', () => {
+    expect(hasTicketButton(party(), {})).toBe(false);
+  });
+  it('uses the same free tags as the app', () => {
+    expect(new Set(FREE_TAGS)).toEqual(APP_FREE_TAGS);
   });
 });

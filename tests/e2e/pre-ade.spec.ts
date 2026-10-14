@@ -140,3 +140,21 @@ test('no ticket link, venue on RA: the ticket button opens the venue on RA', asy
   await expect(btn).toHaveAttribute('target', '_blank');
   await expect(page.locator('.detail .resale-note')).toContainText("on RA lists what's on there");
 });
+
+test("no ticket link: the venue's own agenda comes before RA", async ({ page }) => {
+  await page.route('**/data/ade-2026.core.json', async (route) => {
+    const res = await route.fetch();
+    const data = await res.json();
+    const ev = data.events.find((e: { id: number }) => e.id === 2891354);
+    const venue = data.venues.find((v: { id: string }) => v.id === ev.venueId);
+    venue.raUrl = 'https://ra.co/clubs/12345';
+    venue.siteUrl = 'https://venue.example/agenda';
+    await route.fulfill({ response: res, json: data });
+  });
+  await page.goto('./#d=21&e=2891354');
+  const btn = page.locator('.detail .actions .btn.primary');
+  await expect(btn).toHaveAttribute('href', 'https://venue.example/agenda');
+  await expect(btn).toContainText(/^Find tickets at /);
+  await expect(page.getByRole('link', { name: 'Find tickets on RA' })).toHaveCount(0);
+  await expect(page.locator('.detail .resale-note')).toContainText('lists its events on its own site');
+});

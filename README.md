@@ -72,12 +72,18 @@ that matters, set the link by hand in `scripts/manual-fixes.json`:
 `ticketText` is optional (default "Buy Tickets", or "Tickets on RA" for an `ra.co` link). Once
 ADE adds its own link, ADE's wins and the run summary lists the override for removal.
 
-**Resident Advisor.** Parties without any ticket link get a "Find tickets on RA" button to their
-venue's RA page (which lists what's on there) when the venue is in `raClubs` in
-`scripts/manual-fixes.json`: `"<ADE venue id>": { "name": "...", "url": "https://ra.co/clubs/<n>" }`.
-Every refresh re-applies it, so parties added later get it too. RA's terms forbid automated
-access to their site, so the pipeline never queries RA: the club pages and RA event links in the
-file were found by web search and checked by hand.
+**No ticket link at all.** A party that isn't free or sold out and has no ticket link gets a
+button to where its venue lists what's on, from `scripts/manual-fixes.json`:
+
+1. `venueSites`: the venue's own agenda or tickets page ("Find tickets at <venue>"),
+   `"<ADE venue id>": { "name": "...", "url": "https://..." }`;
+2. `raClubs`: else the venue's Resident Advisor page ("Find tickets on RA"),
+   `"<ADE venue id>": { "name": "...", "url": "https://ra.co/clubs/<n>" }`.
+
+Every refresh re-applies both, so parties added later get them too, and the run summary lists
+new parties still left without any button. RA's terms forbid automated access to their site and
+RA's search can't be pre-filled from a link, so the pipeline never queries RA: the entries were
+found by web search and checked by hand.
 
 `public/data/ade-2026.json` is the full dataset; the app loads `ade-2026.core.json` (no
 descriptions) first and `ade-2026.text.json` in the background. `basemap.json` is only used when

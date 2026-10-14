@@ -8,7 +8,9 @@ export interface Venue {
   geo: string;
   /** Ids of duplicate records merged into this venue (old #v= links still resolve). */
   aliases?: string[];
-  /** The venue's page on Resident Advisor, for parties here without a ticket link. */
+  /** The venue's own agenda/tickets page, for parties here without a ticket link. */
+  siteUrl?: string;
+  /** The venue's page on Resident Advisor (when it has no agenda page of its own). */
   raUrl?: string;
 }
 

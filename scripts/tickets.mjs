@@ -59,20 +59,51 @@ export function ticketLink(event, details, fix = {}) {
 const isRaUrl = (url) => /^https:\/\/([a-z]{2}\.)?ra\.co\//.test(url);
 const RA_CLUB = /^https:\/\/ra\.co\/clubs\/\d+$/;
 
-/** An raClubs entry: the URL, or `{ name, url }` (the name only helps whoever edits the file). */
+/** A raClubs / venueSites entry: the URL, or `{ name, url }` (the name helps whoever edits it). */
 export const raClubUrl = (entry) => (typeof entry === 'string' ? entry : (entry?.url ?? null));
+export const entryUrl = raClubUrl;
 
 /** A venue's page on Resident Advisor ("https://ra.co/clubs/<n>"), as set in manual-fixes.json. */
 export const validRaClub = (url) => RA_CLUB.test(url ?? '');
 
-/**
- * The RA club page for a venue, matched by its ADE id or the ids of duplicate records merged
- * into it. Parties at the venue without a ticket link point there: it lists what's on.
- */
-export function raClubFor(venue, raClubs) {
+/** A venue's own agenda/tickets page: https, and not RA or ADE (those have their own rules). */
+export function validVenueSite(url) {
+  try {
+    const u = new URL(url);
+    return u.protocol === 'https:' && !/(^|\.)(ra\.co|amsterdam-dance-event\.nl)$/.test(u.hostname);
+  } catch {
+    return false;
+  }
+}
+
+/** The mapped URL for a venue, by its ADE id or the ids of duplicate records merged into it. */
+function mappedFor(venue, map, valid) {
   for (const id of [venue.id, ...(venue.aliases ?? [])]) {
-    const url = raClubUrl(raClubs[id]);
-    if (url && validRaClub(url)) return url;
+    const url = entryUrl(map[id]);
+    if (url && valid(url)) return url;
   }
   return null;
+}
+
+/**
+ * The RA club page for a venue. Parties at the venue without a ticket link point there when the
+ * venue has no agenda page of its own: it lists what's on.
+ */
+export const raClubFor = (venue, raClubs) => mappedFor(venue, raClubs, validRaClub);
+
+/** The venue's own agenda/tickets page: the first place to look for a party without a link. */
+export const venueSiteFor = (venue, venueSites) => mappedFor(venue, venueSites, validVenueSite);
+
+/** ADE's tags for free parties (same as FREE_TAGS in src/lib/facets.ts). */
+export const FREE_TAGS = ['Free Festival Events', 'Free A&C Events'];
+
+/**
+ * Whether the app shows a button to get in for this party: a ticket link, TicketSwap (sold
+ * out), free entry, or the venue's agenda or RA page. Parties without one are listed in the run
+ * summary so a link can be set by hand.
+ */
+export function hasTicketButton(event, venue) {
+  if (event.ticketUrl || event.soldOut) return true;
+  if ((event.interests ?? []).some((t) => FREE_TAGS.includes(t))) return true;
+  return !!(venue?.siteUrl || venue?.raUrl);
 }

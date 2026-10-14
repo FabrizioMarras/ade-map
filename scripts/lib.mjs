@@ -151,6 +151,11 @@ export function isMain(metaUrl) {
 export function readManualFixes() {
   const raw = readJSON(join(ROOT, 'scripts/manual-fixes.json'), {});
   return Array.isArray(raw)
-    ? { venues: raw, events: {}, raClubs: {} }
-    : { venues: raw.venues ?? [], events: raw.events ?? {}, raClubs: raw.raClubs ?? {} };
+    ? { venues: raw, events: {}, raClubs: {}, venueSites: {} }
+    : {
+        venues: raw.venues ?? [],
+        events: raw.events ?? {},
+        raClubs: raw.raClubs ?? {},
+        venueSites: raw.venueSites ?? {},
+      };
 }

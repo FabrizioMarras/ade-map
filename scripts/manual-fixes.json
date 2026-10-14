@@ -1,5 +1,5 @@
 {
-  "_readme": "Hand-maintained overrides for the data pipeline. venues: coordinates for venues the geocoder can't place (by ADE venue id). events: per-event overrides by ADE event id; ticketswapUrl replaces the generated TicketSwap search link (must be a ticketswap.com / ticketswap.nl URL); ticketUrl (https, with optional ticketText, default 'Buy Tickets') is the ticket link for a party ADE has none for, used until ADE adds its own (an ra.co link reads 'Tickets on RA'). raClubs: ADE venue id → the venue's Resident Advisor page, { name, url: https://ra.co/clubs/<n> }, the ticket button for its parties without a ticket link. Example: \"2832602\": { \"ticketUrl\": \"https://www.paradiso.nl/en/program/anjunadeep-amsterdam/2913607\" }.",
+  "_readme": "Hand-maintained overrides for the data pipeline. venues: coordinates for venues the geocoder can't place (by ADE venue id). events: per-event overrides by ADE event id; ticketswapUrl replaces the generated TicketSwap search link (must be a ticketswap.com / ticketswap.nl URL); ticketUrl (https, with optional ticketText, default 'Buy Tickets') is the ticket link for a party ADE has none for, used until ADE adds its own (an ra.co link reads 'Tickets on RA'). raClubs: ADE venue id → the venue's Resident Advisor page, { name, url: https://ra.co/clubs/<n> }, the ticket button for its parties without a ticket link. venueSites: ADE venue id → the venue's own agenda or tickets page, { name, url } (https, not RA or ADE), shown before RA. Example: \"2832602\": { \"ticketUrl\": \"https://www.paradiso.nl/en/program/anjunadeep-amsterdam/2913607\" }.",
   "venues": [
     {
       "id": "1588",
@@ -241,6 +241,92 @@
     "2937764": {
       "name": "Rokin 75",
       "url": "https://ra.co/clubs/124503"
+    }
+  },
+  "venueSites": {
+    "1574": {
+      "name": "AFAS Live",
+      "url": "https://www.afaslive.nl/agenda"
+    },
+    "1580": {
+      "name": "SUPPER",
+      "url": "https://supper.nl/club/"
+    },
+    "37303": {
+      "name": "Club UP",
+      "url": "https://www.clubup.nl/program"
+    },
+    "45647": {
+      "name": "The Loft Amsterdam",
+      "url": "https://theloftamsterdam.com/"
+    },
+    "59026": {
+      "name": "A'DAM Toren",
+      "url": "https://adamtoren.nl/ade/"
+    },
+    "1492833": {
+      "name": "Nxt Museum",
+      "url": "https://nxtmuseum.com/events"
+    },
+    "1667299": {
+      "name": "THE OTHER SIDE",
+      "url": "https://the-other-side.nl/events"
+    },
+    "1670811": {
+      "name": "Pacific Amsterdam",
+      "url": "https://www.pacificamsterdam.nl/events"
+    },
+    "1721889": {
+      "name": "Levenslang Amsterdam",
+      "url": "https://levenslang.amsterdam/programma"
+    },
+    "2479209": {
+      "name": "'t Zonnehuis",
+      "url": "https://zonnehuis.amsterdam/agenda/"
+    },
+    "2498154": {
+      "name": "50:HERTZ CLUB TRAIN 2026",
+      "url": "https://www.50-hertz.com/clubtrain"
+    },
+    "2566926": {
+      "name": "Badhuis Amsterdam",
+      "url": "https://www.badhuisamsterdam.nl/agenda"
+    },
+    "2686768": {
+      "name": "W139",
+      "url": "https://w139.nl/"
+    },
+    "2705599": {
+      "name": "Hal West",
+      "url": "https://www.dehallen-amsterdam.nl/en/agenda"
+    },
+    "2706057": {
+      "name": "Splendor",
+      "url": "https://splendoramsterdam.com/en/agenda"
+    },
+    "2708600": {
+      "name": "Lotti's Bar @ The Hoxton",
+      "url": "https://thehoxton.com/whats-on/?filter-location=herengracht"
+    },
+    "2812614": {
+      "name": "Pllek",
+      "url": "https://pllek.nl/en/agenda/"
+    },
+    "2823552": {
+      "name": "Theater de Richel",
+      "url": "https://theaterderichel.nl/agenda/"
+    },
+    "2825075": {
+      "name": "Van Eesteren Museum",
+      "url": "https://www.vaneesterenmuseum.nl/en/agenda"
+    },
+    "2830291": {
+      "name": "Ceintuur Theater",
+      "url": "https://ceintuurtheater.nl/ct-agenda/"
+    },
+    "2904624": {
+      "name": "Allard Pierson",
+      "url": "https://www.allardpierson.nl/en/calendar"
     }
   }
 }
