@@ -61,7 +61,9 @@
       <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>
     </p>
     <p class="copyright">
-      © {new Date().getFullYear()} FM Consulting ·
+      © {new Date().getFullYear()}
+      <a href="https://fmconsulting.dev" target="_blank" rel="noopener">FM Consulting</a>
+      ·
       <a href="https://fabriziomarras.com" target="_blank" rel="noopener">fabriziomarras.com</a>
     </p>
   </div>

@@ -509,7 +509,9 @@ async function main() {
         el(
           'p',
           { class: 'copyright' },
-          `© ${year} FM Consulting · `,
+          `© ${year} `,
+          el('a', { href: 'https://fmconsulting.dev', target: '_blank', rel: 'noopener' }, 'FM Consulting'),
+          ' · ',
           el(
             'a',
             { href: 'https://fabriziomarras.com', target: '_blank', rel: 'noopener' },

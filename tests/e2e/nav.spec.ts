@@ -61,6 +61,11 @@ test('bottom navigation: walk the four tabs on a phone', async ({ page }) => {
   await expect(more).toContainText(/[\d,]+ festival parties at \d+ venues/);
   await expect(more.getByRole('link', { name: /^Insights/ })).toHaveAttribute('href', './insights/');
   await expect(more.getByRole('link', { name: /^How to use the app/ })).toHaveAttribute('href', './help/');
+  await expect(more.getByRole('link', { name: 'FM Consulting' })).toHaveAttribute(
+    'href',
+    'https://fmconsulting.dev',
+  );
+  await expect(page.locator('a.brand')).toHaveAttribute('href', 'https://fmconsulting.dev');
   const theme = more.getByRole('button', { name: /^Theme/ });
   const val = theme.locator('.val');
   await expect(val).toHaveText(/^Auto \((light|dark) now\)$/);

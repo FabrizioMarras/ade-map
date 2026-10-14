@@ -295,7 +295,9 @@
     </p>
     <p>Reading the charts instead? See the <a href="../insights/help/">Insights guide</a>.</p>
     <p class="copyright">
-      © {new Date().getFullYear()} FM Consulting ·
+      © {new Date().getFullYear()}
+      <a href="https://fmconsulting.dev" target="_blank" rel="noopener">FM Consulting</a>
+      ·
       <a href="https://fabriziomarras.com" target="_blank" rel="noopener">fabriziomarras.com</a>
     </p>
   </footer>

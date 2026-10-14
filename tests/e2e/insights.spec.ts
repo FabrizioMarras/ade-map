@@ -24,6 +24,10 @@ test('insights page: reachable from More, six charts with sentences and tables',
   await page.getByText('Show table').first().click();
   await expect(page.locator('table.data').first().locator('tbody tr')).toHaveCount(json.hourly.counts.length);
   await expect(page.getByRole('link', { name: 'fabriziomarras.com' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'FM Consulting' })).toHaveAttribute(
+    'href',
+    'https://fmconsulting.dev',
+  );
   expect(errors).toEqual([]);
 });
 

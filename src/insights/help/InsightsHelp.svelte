@@ -183,7 +183,9 @@
     <p>Raw numbers: <a href={RAW}>insights.json</a>, the file the Insights page loads.</p>
     <p>Looking for the app guide instead? See <a href="../../help/">how to use the map</a>.</p>
     <p class="copyright">
-      © {new Date().getFullYear()} FM Consulting ·
+      © {new Date().getFullYear()}
+      <a href="https://fmconsulting.dev" target="_blank" rel="noopener">FM Consulting</a>
+      ·
       <a href="https://fabriziomarras.com" target="_blank" rel="noopener">fabriziomarras.com</a>
     </p>
   </footer>
