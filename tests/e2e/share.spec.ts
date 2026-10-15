@@ -105,26 +105,3 @@ test('Share list opens the share sheet on the first tap, with a #list= link and 
   await expect(other.getByRole('region', { name: 'Shared list' })).toContainText('Shared list · 2 parties');
   await other.close();
 });
-
-test('Export and Import use inline fields, not pop-ups', async ({ page, context }) => {
-  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
-  await page.addInitScript(() => localStorage.setItem('ade2026.favs.v1', JSON.stringify([2843412, 2804807])));
-  let dialogs = 0;
-  page.on('dialog', (d) => ((dialogs += 1), d.dismiss()));
-  await page.goto('./#d=fav');
-  await ready(page);
-  await page.getByRole('button', { name: 'Expand panel' }).click();
-
-  await page.getByRole('button', { name: 'Export list' }).click();
-  const field = page.getByLabel(/Your list as text/);
-  await expect(field).toHaveValue('ADE2026-FAVS:2804807,2843412');
-  await page.getByRole('button', { name: 'Copy', exact: true }).click();
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('ADE2026-FAVS:2804807,2843412');
-
-  await page.getByRole('button', { name: 'Import list' }).click();
-  await page.getByLabel(/Paste an exported list/).fill('ADE2026-FAVS:2861728,2843412');
-  await page.getByRole('button', { name: 'Import', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'My list (3)' })).toBeVisible();
-  await expect(page.getByRole('status').filter({ hasText: 'Added 1 party' })).toBeVisible();
-  expect(dialogs).toBe(0);
-});

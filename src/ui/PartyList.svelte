@@ -1,7 +1,7 @@
 <script lang="ts">
   import { activeFilterCount, applyQuery } from '../lib/filter';
   import { plural } from '../lib/format';
-  import { clashes, exportFavs, importFavs } from '../lib/favs';
+  import { clashes } from '../lib/favs';
   import { downloadIcs, eventsToIcs } from '../lib/ics';
   import { searchArtists } from '../lib/artists';
   import { listLink } from '../lib/share';
@@ -12,6 +12,7 @@
   import { festivalDay } from '../lib/time';
   import type { AdeEvent } from '../lib/types';
   import EventCard from './EventCard.svelte';
+  import Icon from './Icon.svelte';
 
   interface Props {
     onopen: (e: AdeEvent) => void;
@@ -102,33 +103,6 @@
     }
   }
 
-  /** Export / Import as inline panels (no browser pop-ups). */
-  let transfer = $state<'export' | 'import' | null>(null);
-  let pasted = $state('');
-  let exportField: HTMLInputElement | undefined = $state();
-  const exportText = $derived(exportFavs(app.favs));
-
-  async function copyExport() {
-    exportField?.select();
-    try {
-      await navigator.clipboard.writeText(exportText);
-      onmessage(`Copied ${plural(app.favs.size, 'favourite')} to the clipboard`);
-    } catch {
-      onmessage('Select the text and copy it');
-    }
-  }
-
-  function doImport() {
-    if (!app.data) return;
-    const ids = importFavs(pasted, (id) => app.data!.eventsById.has(id));
-    if (!ids.length) return onmessage('No parties found in that text');
-    const before = app.favs.size;
-    app.setFavs(new Set([...app.favs, ...ids]));
-    onmessage(`Added ${plural(app.favs.size - before, 'party', 'parties')} to your list`);
-    pasted = '';
-    transfer = null;
-  }
-
   function toggleAfterMidnight() {
     afterMidnight = !afterMidnight;
     writeJSON(KEYS.afterMidnight, afterMidnight);
@@ -137,48 +111,15 @@
 
 <!-- My list: its actions as a button row at the top. -->
 {#if favMode}
-  <div class="actions transfer">
+  <div class="actions list-actions">
     <button class="btn primary" disabled={!app.starredNights.length} onclick={() => app.openNightPlan()}
-      >Plan my night</button
+      ><Icon name="route" />Plan my night</button
     >
-    <button class="btn" disabled={!app.favs.size} onclick={shareList}>Share list</button>
-    <button class="btn" disabled={!app.favs.size} onclick={exportCalendar}>Calendar (.ics)</button>
-    <button
-      class="btn"
-      disabled={!app.favs.size}
-      aria-expanded={transfer === 'export'}
-      onclick={() => (transfer = transfer === 'export' ? null : 'export')}>Export list</button
-    >
-    <button
-      class="btn"
-      aria-expanded={transfer === 'import'}
-      onclick={() => (transfer = transfer === 'import' ? null : 'import')}>Import list</button
+    <button class="btn" disabled={!app.favs.size} onclick={shareList}><Icon name="share" />Share list</button>
+    <button class="btn" disabled={!app.favs.size} onclick={exportCalendar}
+      ><Icon name="calendar" />Calendar (.ics)</button
     >
   </div>
-  {#if transfer === 'export'}
-    <div class="transfer-panel">
-      <label for="export-text">Your list as text — copy it to another device and import it there</label>
-      <div class="row">
-        <input
-          id="export-text"
-          bind:this={exportField}
-          readonly
-          value={exportText}
-          onfocus={(e) => e.currentTarget.select()}
-        />
-        <button class="btn primary" onclick={copyExport}>Copy</button>
-      </div>
-    </div>
-  {:else if transfer === 'import'}
-    <div class="transfer-panel">
-      <label for="import-text">Paste an exported list (ADE2026-FAVS:…) or party links</label>
-      <textarea id="import-text" rows="3" bind:value={pasted} placeholder="ADE2026-FAVS:…"></textarea>
-      <div class="row end">
-        <button class="btn" onclick={() => ((transfer = null), (pasted = ''))}>Cancel</button>
-        <button class="btn primary" disabled={!pasted.trim()} onclick={doImport}>Import</button>
-      </div>
-    </div>
-  {/if}
 {/if}
 
 {#if artists.length}
@@ -333,40 +274,7 @@
     font-size: 13px;
     color: var(--muted);
   }
-  .transfer-panel {
-    margin: 0 16px 12px;
-    padding: 12px;
-    border-radius: var(--r-box);
-    background: var(--surface-2);
-    border: 1px solid var(--line);
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  .transfer-panel label {
-    font-size: 14px;
-    color: var(--muted);
-  }
-  .transfer-panel .row {
-    display: flex;
-    gap: 8px;
-  }
-  .transfer-panel .row.end {
-    justify-content: flex-end;
-  }
-  .transfer-panel input,
-  .transfer-panel textarea {
-    flex: 1;
-    min-width: 0;
-    min-height: var(--tap);
-    padding: 8px 10px;
-    border: 1px solid var(--line);
-    border-radius: var(--r-box);
-    background: var(--surface);
-    color: var(--fg);
-    font: 15px/1.3 var(--font-body);
-  }
-  .transfer {
+  .list-actions {
     justify-content: center;
   }
   .more-days {

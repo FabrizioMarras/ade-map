@@ -186,12 +186,13 @@
     <div class="step">
       <div class="fig"><Icon name="calendar" size={34} /></div>
       <div>
-        <h3>Calendar, export, import</h3>
+        <h3>Calendar and reminders</h3>
         <p>
-          <span class="ui">Calendar (.ics)</span> adds your list to your phone's calendar.
-          <span class="ui">Export list</span> and <span class="ui">Import list</span> move your stars between
-          devices as a short text code. Tick <em>Remind me 30 minutes before each starred party</em> for a notification
-          (most reliable on Android with the app installed).
+          <span class="ui">Calendar (.ics)</span> adds your list to your phone's calendar. To move your stars
+          to another device, send yourself <span class="ui">Share list</span> and tap
+          <span class="ui">Save to my list</span> there. Tick
+          <em>Remind me 30 minutes before each starred party</em> for a notification (most reliable on Android with
+          the app installed).
         </p>
       </div>
     </div>

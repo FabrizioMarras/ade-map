@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clashes, exportFavs, importFavs } from '../../src/lib/favs';
+import { clashes } from '../../src/lib/favs';
 import { parseWall } from '../../src/lib/time';
 import type { AdeEvent } from '../../src/lib/types';
 
@@ -15,14 +15,5 @@ describe('favourites', () => {
     expect(m.get(1)!.map((e) => e.id)).toEqual([2]);
     expect(m.get(2)!.map((e) => e.id)).toEqual([1]);
     expect(m.has(3)).toBe(false);
-  });
-
-  it('round-trips export/import and ignores unknown ids', () => {
-    const blob = exportFavs([2843412, 1234567]);
-    expect(blob).toBe('ADE2026-FAVS:1234567,2843412');
-    expect(importFavs(blob, (id) => id === 2843412)).toEqual([2843412]);
-    expect(importFavs('https://www.amsterdam-dance-event.nl/en/program/2026/x/2843412/', () => true)).toEqual(
-      [2843412],
-    );
   });
 });
