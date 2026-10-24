@@ -1,0 +1,212 @@
+{
+  "generated": "2026-10-24T12:12:04.298Z",
+  "hash": "eed7694c5478ee2e",
+  "events": 1527,
+  "venues": 365,
+  "requests": 202,
+  "venuesBeforeMerge": 366,
+  "byDay": {
+    "2026-10-21": 195,
+    "2026-10-22": 356,
+    "2026-10-23": 401,
+    "2026-10-24": 373,
+    "2026-10-25": 202
+  },
+  "mergedVenues": [
+    {
+      "kept": "2818662",
+      "name": "Oceandiva Original",
+      "removed": [
+        "2818668"
+      ]
+    }
+  ],
+  "sharedSpots": [
+    {
+      "address": "Rembrandtplein 17-1, Amsterdam",
+      "venues": [
+        "Royal Room",
+        "Café De Kroon"
+      ]
+    },
+    {
+      "address": "Anthony Fokkerweg 3, 1059 CM Amsterdam, Amsterdam",
+      "venues": [
+        "Head Moverz",
+        "Sissi's Amsterdam"
+      ]
+    },
+    {
+      "address": "Overhoeksplein 1, Amsterdam",
+      "venues": [
+        "The Loft Amsterdam",
+        "Madam",
+        "Shelter",
+        "A'DAM Toren"
+      ]
+    },
+    {
+      "address": "Nieuwe Herengracht 18, Amsterdam",
+      "venues": [
+        "Huis van de Tijd",
+        "Protestantse Diaconie"
+      ]
+    },
+    {
+      "address": "Bijlmerbajes, H.J.E. Wenckebachweg 48, Amsterdam",
+      "venues": [
+        "Levenslang Amsterdam",
+        "Bajes Amsterdam"
+      ]
+    },
+    {
+      "address": "Herengracht 255, Amsterdam",
+      "venues": [
+        "Lotti's Bar @ The Hoxton",
+        "The Hoxton"
+      ]
+    },
+    {
+      "address": "Rigakade 10, Amsterdam",
+      "venues": [
+        "THE OTHER SIDE",
+        "Borisov"
+      ]
+    },
+    {
+      "address": "Wibautstraat 150, Amsterdam",
+      "venues": [
+        "Werkplaats",
+        "Doka"
+      ]
+    },
+    {
+      "address": "Kleine-Gartmanplantsoen 7, Amsterdam",
+      "venues": [
+        "Palladium Amsterdam",
+        "Sociëteit De Kring"
+      ]
+    },
+    {
+      "address": "Piet Heinkade 1, Amsterdam",
+      "venues": [
+        "Muziekgebouw aan 't IJ",
+        "Bimhuis"
+      ]
+    },
+    {
+      "address": "Mauritskade 57, Amsterdam",
+      "venues": [
+        "Auditorium",
+        "OOSTerbar",
+        "Generator Amsterdam"
+      ]
+    },
+    {
+      "address": "Moermanskkade 107, Amsterdam",
+      "venues": [
+        "United Studio's",
+        "Mediahaven"
+      ]
+    },
+    {
+      "address": "Rembrandtplein 11, Amsterdam",
+      "venues": [
+        "Escape Club",
+        "Free Your Mind Club"
+      ]
+    },
+    {
+      "address": "Rembrandtplein 17, Amsterdam",
+      "venues": [
+        "Oliva",
+        "Three Sisters Pub",
+        "Escape deLux"
+      ]
+    },
+    {
+      "address": "Prins Hendrikkade 33, Amsterdam",
+      "venues": [
+        "art'otel Amsterdam",
+        "Flagship Amsterdam"
+      ]
+    },
+    {
+      "address": "Humberweg 7, Amsterdam",
+      "venues": [
+        "H7 Warehouse",
+        "Rhone Ephesus Amsterdam"
+      ]
+    },
+    {
+      "address": "Amstel 1, Amsterdam",
+      "venues": [
+        "STOPERA",
+        "Nationale Opera & Ballet",
+        "Café Café Amsterdam"
+      ]
+    },
+    {
+      "address": "7 Overhoeksplein, Amsterdam",
+      "venues": [
+        "The Butcher Social Club",
+        "Sir Adam"
+      ]
+    },
+    {
+      "address": "Korte leidsedwarsstraat 36, Amsterdam",
+      "venues": [
+        "Velvet Vixen",
+        "LEIDSE Amsterdam"
+      ]
+    },
+    {
+      "address": "Rokin 75, Amsterdam",
+      "venues": [
+        "Rokin 75",
+        "Cruise Control Studios"
+      ]
+    },
+    {
+      "address": "Timorplein 21, Amsterdam",
+      "venues": [
+        "The 5th Amsterdam Oost",
+        "Stayokay Amsterdam Oost"
+      ]
+    }
+  ],
+  "manualFixes": [
+    {
+      "id": "1594",
+      "name": "Gashouder"
+    },
+    {
+      "id": "1588",
+      "name": "WestWeelde"
+    },
+    {
+      "id": "2070197",
+      "name": "De Sering"
+    },
+    {
+      "id": "2498154",
+      "name": "50:HERTZ CLUB TRAIN 2026"
+    },
+    {
+      "id": "2818662",
+      "name": "Oceandiva Original"
+    },
+    {
+      "id": "2842954",
+      "name": "Transit"
+    },
+    {
+      "id": "2683592",
+      "name": "Wereldmuseum Amsterdam"
+    },
+    {
+      "id": "1670811",
+      "name": "Pacific Amsterdam"
+    }
+  ]
+}
